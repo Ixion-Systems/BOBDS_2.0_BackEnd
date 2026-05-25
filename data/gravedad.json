@@ -1,0 +1,27 @@
+[
+    {
+        "IDGravedad": 1,
+        "Descripcion": "Insercion",
+        "Valor": 2
+    },
+    {
+        "IDGravedad": 2,
+        "Descripcion": "Actualizacion",
+        "Valor": 1
+    },
+    {
+        "IDGravedad": 3,
+        "Descripcion": "Inicio de sesion",
+        "Valor": 1
+    },
+    {
+        "IDGravedad": 4,
+        "Descripcion": "Lectura/Select",
+        "Valor": 1
+    },
+    {
+        "IDGravedad": 5,
+        "Descripcion": "Eliminacion",
+        "Valor": 3
+    }
+]

@@ -21,7 +21,7 @@ public class UsuarioEntradaService {
     private EmailService emailService;
 
     public UsuarioEntradaService() {
-        this.dataFile = "data/usuarios.json";
+        this.dataFile = "data/usuario.json";
         this.objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         File dataDir = new File("data");
@@ -41,7 +41,7 @@ public class UsuarioEntradaService {
 
             // Verificar nombre duplicado
             for (Usuario usuario : usuarios) {
-                if (usuario.getNombre().equals(nombre)) {
+                if (usuario.getNombreUsuario().equals(nombre)) {
                     return "Error: El nombre de usuario '" + nombre + "' ya existe.";
                 }
                 // Verificar email duplicado
@@ -49,9 +49,17 @@ public class UsuarioEntradaService {
                     return "Error: El email '" + email + "' ya está registrado.";
                 }
             }
+            int maxId = 0;
+            for (Usuario usuario : usuarios) {
+                if (usuario.getIdUsuario() > maxId) {
+                    maxId = usuario.getIdUsuario();
+                }
+            }
+            int nextId = maxId + 1;
 
             String token = UUID.randomUUID().toString();
             Usuario nuevoUsuario = new Usuario(nombre, password, email);
+            nuevoUsuario.setIdUsuario(nextId);
             nuevoUsuario.setVerificado(false);
             nuevoUsuario.setTokenVerificacion(token);
             usuarios.add(nuevoUsuario);
@@ -89,12 +97,12 @@ public class UsuarioEntradaService {
             List<Usuario> usuarios = cargarUsuarios();
             for (Usuario usuario : usuarios) {
                 boolean match = usuario.getEmail() != null && usuario.getEmail().equals(email);
-                if (match && usuario.getPassword().equals(password)) {
+                if (match && usuario.getContraseña().equals(password)) {
                     // Bloquear si no verificó el email
                     if (!usuario.isVerificado()) {
                         return "Error: Debés verificar tu email antes de iniciar sesión.";
                     }
-                    return "Inicio de sesión exitoso. Bienvenido, " + usuario.getNombre() + "!";
+                    return "Inicio de sesión exitoso. Bienvenido, " + usuario.getNombreUsuario() + "!";
                 }
             }
             return "Error: Email o contraseña incorrectos.";
@@ -108,10 +116,20 @@ public class UsuarioEntradaService {
             List<Usuario> usuarios = cargarUsuarios();
             for (Usuario u : usuarios) {
                 if (email.equals(u.getEmail())) {
-                    return "Bienvenido de nuevo, " + u.getNombre() + "!";
+                    return "Bienvenido de nuevo, " + u.getNombreUsuario() + "!";
                 }
             }
+            // Calcular el próximo IDUsuario autoincremental
+            int maxId = 0;
+            for (Usuario usuario : usuarios) {
+                if (usuario.getIdUsuario() > maxId) {
+                    maxId = usuario.getIdUsuario();
+                }
+            }
+            int nextId = maxId + 1;
+
             Usuario nuevo = new Usuario(nombre, "GOOGLE_AUTH", email);
+            nuevo.setIdUsuario(nextId);
             nuevo.setVerificado(true); // Google ya verificó el email
             usuarios.add(nuevo);
             guardarUsuarios(usuarios);

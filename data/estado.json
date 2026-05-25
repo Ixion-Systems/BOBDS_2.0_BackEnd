@@ -1,0 +1,10 @@
+[
+    {
+        "IDEstado": 1,
+        "Nombre": "Activo"
+    },
+    {
+        "IDEstado": 2,
+        "Nombre": "Inactivo"
+    }
+]

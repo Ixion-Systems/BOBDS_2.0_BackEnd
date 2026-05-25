@@ -1,0 +1,8 @@
+[ {
+  "IDUsuario" : 1,
+  "NombreUsuario" : "juanselin",
+  "Contraseña" : "Clave123",
+  "Email" : "sirjuanseii@gmail.com",
+  "Verificado" : true,
+  "TokenVerificacion" : null
+} ]
