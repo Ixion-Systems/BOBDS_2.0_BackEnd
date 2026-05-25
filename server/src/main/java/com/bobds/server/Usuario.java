@@ -33,9 +33,9 @@ package com.bobds.server;
       }
 
       /**
-       * @param user username to validate
-       * @param pass password to validate
-       * @return "OK" if both are valid, otherwise a string with error messages
+       * @param user
+       * @param pass
+       * @return "OK"
        */
       public static String validarDatos(String user, String pass) {
           StringBuilder errores = new StringBuilder();
