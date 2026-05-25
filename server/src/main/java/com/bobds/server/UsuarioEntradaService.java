@@ -17,9 +17,7 @@ package com.bobds.server;
           this.dataFile = "data/usuarios.json";
           this.objectMapper = new ObjectMapper();
 
-          // Configure ObjectMapper for pretty printing
           objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-          // Ensure data directory exists
           File dataDir = new File("data");
           if (!dataDir.exists()) {
               dataDir.mkdirs();
@@ -78,8 +76,8 @@ package com.bobds.server;
       }
 
       /**
-       * @return list of users (empty list if file doesn't exist or is empty)
-       * @throws IOException if there's an error reading the file
+       * @return list of users
+       * @throws IOException
        */
       private List<Usuario> cargarUsuarios() throws IOException {
           File file = new File(dataFile);
