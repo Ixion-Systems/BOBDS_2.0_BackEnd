@@ -1,6 +1,7 @@
 package com.bobds.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 public class Usuario {
 
@@ -20,6 +21,7 @@ public class Usuario {
     private boolean verificado = false;
 
     @JsonProperty("TokenVerificacion")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String tokenVerificacion;
 
     public Usuario() {

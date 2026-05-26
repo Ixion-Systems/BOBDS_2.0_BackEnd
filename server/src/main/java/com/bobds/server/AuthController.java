@@ -45,8 +45,17 @@ public class AuthController {
     }
     
     @GetMapping("/verify")
-    public ResponseEntity<String> verify(@RequestParam String token) {
-        String result = usuarioEntrada.verificarEmail(token);
+    public ResponseEntity<String> verify(@RequestParam String email, @RequestParam String token) {
+        String result = usuarioEntrada.verificarEmail(email, token);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/resend")
+    public ResponseEntity<String> resend(@RequestParam String email) {
+        String result = usuarioEntrada.reenviarCodigo(email);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
         }

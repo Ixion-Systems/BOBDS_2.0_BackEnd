@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
+import java.util.Random;
 
 @Service
 public class UsuarioEntradaService {
@@ -57,14 +57,20 @@ public class UsuarioEntradaService {
             }
             int nextId = maxId + 1;
 
-            String token = UUID.randomUUID().toString();
+            String token = String.format("%06d", new Random().nextInt(999999));
             Usuario nuevoUsuario = new Usuario(nombre, password, email);
             nuevoUsuario.setIdUsuario(nextId);
             nuevoUsuario.setVerificado(false);
             nuevoUsuario.setTokenVerificacion(token);
             usuarios.add(nuevoUsuario);
             guardarUsuarios(usuarios);
-            emailService.enviarVerificacion(email, token);
+            try {
+                emailService.enviarVerificacion(email, token);
+            } catch (Exception e) {
+                usuarios.remove(nuevoUsuario);
+                guardarUsuarios(usuarios);
+                return "Error crítico al enviar el email de verificación. Revisa la configuración del servidor o prueba de nuevo. Detalle: " + e.getMessage();
+            }
 
             return "Usuario '" + nombre + "' registrado. Revisá tu email para verificar la cuenta.";
         } catch (IOException e) {
@@ -72,11 +78,11 @@ public class UsuarioEntradaService {
         }
     }
 
-    public String verificarEmail(String token) {
+    public String verificarEmail(String email, String token) {
         try {
             List<Usuario> usuarios = cargarUsuarios();
             for (Usuario u : usuarios) {
-                if (token.equals(u.getTokenVerificacion())) {
+                if (email.equals(u.getEmail()) && token.equals(u.getTokenVerificacion())) {
                     u.setVerificado(true);
                     u.setTokenVerificacion(null);
                     guardarUsuarios(usuarios);
@@ -84,6 +90,31 @@ public class UsuarioEntradaService {
                 }
             }
             return "Error: Token inválido o expirado.";
+        } catch (IOException e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    public String reenviarCodigo(String email) {
+        try {
+            List<Usuario> usuarios = cargarUsuarios();
+            for (Usuario u : usuarios) {
+                if (email.equals(u.getEmail())) {
+                    if (u.isVerificado()) {
+                        return "Error: Esta cuenta ya está verificada.";
+                    }
+                    String token = String.format("%06d", new Random().nextInt(999999));
+                    u.setTokenVerificacion(token);
+                    guardarUsuarios(usuarios);
+                    try {
+                        emailService.enviarVerificacion(email, token);
+                        return "Se ha reenviado un nuevo código de 6 dígitos a tu correo.";
+                    } catch (Exception e) {
+                        return "Error al enviar el email de verificación: " + e.getMessage();
+                    }
+                }
+            }
+            return "Error: No se encontró un usuario con ese email.";
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         }
