@@ -22,7 +22,7 @@ public class AuthController {
 
     return "Servidor funcionando";
 
-}
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<String> signUp(@RequestParam String nombre,@RequestParam String password, @RequestParam String email){

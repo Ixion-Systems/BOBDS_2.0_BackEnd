@@ -1,13 +1,7 @@
-[ {
-  "IDUsuario" : 1,
-  "NombreUsuario" : "Diddy",
-  "Contraseña" : "Bobds2026",
-  "Email" : "salazarnicolas.cc@gmail.com",
-  "Verificado" : true
-}, {
+[{
   "IDUsuario" : 2,
   "NombreUsuario" : "Nicolas",
   "Contraseña" : "BobdsAdmin01",
   "Email" : "nicolasneilpereira@gmail.com",
   "Verificado" : true
-} ]
+}]

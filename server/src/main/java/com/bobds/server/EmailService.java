@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
+    // Nota: La contraseña de envío (spring.mail.password) se inyecta automáticamente 
+    // a través del archivo ignorado 'application-secret.properties' por seguridad.
     @Autowired
     private JavaMailSender mailSender;
 
