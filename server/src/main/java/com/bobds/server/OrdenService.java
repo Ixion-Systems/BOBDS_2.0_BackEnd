@@ -66,11 +66,16 @@ public class OrdenService {
         }
     }
 
-    private List<Orden> cargarOrdenes() throws IOException {
-        File file = new File(ordenesFile);
-        if (!file.exists() || file.length() == 0) return new ArrayList<>();
-        Orden[] arr = objectMapper.readValue(file, Orden[].class);
-        return new ArrayList<>(Arrays.asList(arr));
+    public List<Orden> cargarOrdenes() {
+        try {
+            File file = new File(ordenesFile);
+            if (!file.exists() || file.length() == 0) return new ArrayList<>();
+            Orden[] arr = objectMapper.readValue(file, Orden[].class);
+            return new ArrayList<>(Arrays.asList(arr));
+        } catch (IOException e) {
+            System.err.println("Error leyendo archivo de órdenes: " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     private List<OrdenUnidad> cargarOrdenUnidad() throws IOException {
