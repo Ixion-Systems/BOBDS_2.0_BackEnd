@@ -13,8 +13,6 @@ public class OrdenController {
     @Autowired
     private OrdenService ordenService;
 
-    @Autowired
-    private UnitService unitService;
 
     @PostMapping("/register")
     public ResponseEntity<String> registerOrder(@RequestBody RegistroOrdenDTO datos) {
