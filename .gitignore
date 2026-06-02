@@ -1,4 +1,5 @@
-# Ignorar base de datos local y confidencial
+# Ignorar la carpeta de base de datos JSON
+data/
 data/*.json
 
 # Archivos comunes de SO

@@ -1,19 +1,17 @@
 package com.bobds.server;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class Orden {
-    @JsonProperty("IdOrden")
     private int idOrden;
-
-    @JsonProperty("Estado")
+    private String orden;
+    private String notas;
     private String estado;
 
-    // Additional fields if needed
     public Orden() {}
 
-    public Orden(int idOrden, String estado) {
+    public Orden(int idOrden, String orden, String notas, String estado) {
         this.idOrden = idOrden;
+        this.orden = orden;
+        this.notas = notas;
         this.estado = estado;
     }
 
@@ -23,6 +21,22 @@ public class Orden {
 
     public void setIdOrden(int idOrden) {
         this.idOrden = idOrden;
+    }
+
+    public String getOrden() {
+        return orden;
+    }
+
+    public void setOrden(String orden) {
+        this.orden = orden;
+    }
+
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
     }
 
     public String getEstado() {

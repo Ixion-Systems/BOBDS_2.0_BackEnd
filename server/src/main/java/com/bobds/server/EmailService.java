@@ -28,4 +28,16 @@ public class EmailService {
                 "Si no solicitaste esta cuenta, ignora este mensaje.");
         mailSender.send(message);
     }
+
+    public void enviarRecuperacionPassword(String email, String token) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(email);
+        message.setSubject("Recuperación de Contraseña - B.O.B.D.S.");
+        message.setText("Se ha solicitado un restablecimiento de contraseña para tu cuenta en B.O.B.D.S.\n\n" +
+                "Tu código seguro de verificación de 6 dígitos es: " + token + "\n\n" +
+                "Ingresá este código en la plataforma para cambiar tu contraseña.\n\n" +
+                "Si no solicitaste este cambio, por favor ignora este mensaje y tu contraseña seguirá siendo la misma.");
+        mailSender.send(message);
+    }
 }

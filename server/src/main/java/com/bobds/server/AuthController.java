@@ -61,4 +61,31 @@ public class AuthController {
         }
         return ResponseEntity.ok(result);
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+        String result = usuarioEntrada.solicitarRecuperacion(email);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<String> verifyResetCode(@RequestParam String email, @RequestParam String token) {
+        String result = usuarioEntrada.verificarCodigoRecuperacion(email, token);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestParam String email, @RequestParam String token, @RequestParam String nuevaContrasena) {
+        String result = usuarioEntrada.cambiarContrasena(email, token, nuevaContrasena);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
 }
