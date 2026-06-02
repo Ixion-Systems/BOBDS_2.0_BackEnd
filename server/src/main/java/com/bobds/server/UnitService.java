@@ -12,8 +12,8 @@ import java.util.Optional;
 
 @Service
 public class UnitService {
-    private final String unidadesFile = "data/unidades.json";
-    private final String usuarioUnidadesFile = "data/usuarioUnidades.json";
+    private final String unidadesFile = "../data/unidades.json";
+    private final String usuarioUnidadesFile = "../data/usuarioUnidades.json";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<UnidadListadoDTO> getUnidadesByUsuario(String email) {

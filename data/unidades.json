@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "Nombre": "Ejemplo Unidad",
+    "IDUnidad": "UNI001",
+    "Descripcion": "Unidad de ejemplo para testing",
+    "Estado": "Activo",
+    "CodVinculacion": "VINC001"
+  }
+]
