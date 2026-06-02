@@ -21,10 +21,10 @@ public class UsuarioEntradaService {
     private EmailService emailService;
 
     public UsuarioEntradaService() {
-        this.dataFile = "data/usuario.json";
+        this.dataFile = "../data/usuario.json";
         this.objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        File dataDir = new File("data");
+        File dataDir = new File("../data");
         if (!dataDir.exists()) {
             dataDir.mkdirs();
         }
@@ -167,6 +167,63 @@ public class UsuarioEntradaService {
             return "Usuario registrado con Google: " + nombre;
         } catch (IOException e) {
             return "Error: " + e.getMessage();
+        }
+    }
+
+    public String solicitarRecuperacion(String email) {
+        try {
+            List<Usuario> usuarios = cargarUsuarios();
+            for (Usuario u : usuarios) {
+                if (email.equals(u.getEmail())) {
+                    String token = String.format("%06d", new Random().nextInt(999999));
+                    u.setTokenVerificacion(token);
+                    guardarUsuarios(usuarios);
+                    try {
+                        emailService.enviarRecuperacionPassword(email, token);
+                        return "Se ha enviado un código de 6 dígitos a tu correo para recuperar tu contraseña.";
+                    } catch (Exception e) {
+                        return "Error al enviar el email de recuperación: " + e.getMessage();
+                    }
+                }
+            }
+            return "Error: No se encontró un usuario con ese email.";
+        } catch (IOException e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    public String verificarCodigoRecuperacion(String email, String token) {
+        try {
+            List<Usuario> usuarios = cargarUsuarios();
+            for (Usuario u : usuarios) {
+                if (email.equals(u.getEmail()) && token.equals(u.getTokenVerificacion())) {
+                    return "Código verificado exitosamente.";
+                }
+            }
+            return "Error: Código inválido o expirado.";
+        } catch (IOException e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    public String cambiarContrasena(String email, String token, String nuevaContrasena) {
+        try {
+            List<Usuario> usuarios = cargarUsuarios();
+            for (Usuario u : usuarios) {
+                if (email.equals(u.getEmail()) && token.equals(u.getTokenVerificacion())) {
+                    String validationResult = Usuario.validarDatos(u.getNombreUsuario(), nuevaContrasena);
+                    if (!"OK".equals(validationResult)) {
+                        return "Error de validación:\n" + validationResult;
+                    }
+                    u.setContraseña(nuevaContrasena);
+                    u.setTokenVerificacion(null); // Limpiar el token
+                    guardarUsuarios(usuarios);
+                    return "Tu contraseña ha sido actualizada con éxito. Ya puedes iniciar sesión.";
+                }
+            }
+            return "Error: No se pudo verificar la identidad para cambiar la contraseña.";
+        } catch (IOException e) {
+            return "Error al acceder a los datos: " + e.getMessage();
         }
     }
 
