@@ -13,7 +13,6 @@ public class OrdenController {
     @Autowired
     private OrdenService ordenService;
 
-
     @PostMapping("/register")
     public ResponseEntity<String> registerOrder(@RequestBody RegistroOrdenDTO datos) {
         String result = ordenService.registrarOrden(datos);
@@ -22,6 +21,7 @@ public class OrdenController {
         }
         return ResponseEntity.ok("Orden transmitida y registrada exitosamente");
     }
+
     /**
      * Endpoint to get all orders with their id and estado
      * @return List of orders
@@ -31,6 +31,7 @@ public class OrdenController {
         List<Orden> ordenes = ordenService.cargarOrdenes();
         return ResponseEntity.ok(ordenes);
     }
+
     /**
      * Endpoint to get a specific order by id
      * @param idOrden The order ID
@@ -56,6 +57,7 @@ public class OrdenController {
         List<Orden> ordenes = ordenService.obtenerOrdenesPorUnidad(idUnidad);
         return ResponseEntity.ok(ordenes);
     }
+
     /**
      * Endpoint to delete an order
      * @param idOrden The order ID

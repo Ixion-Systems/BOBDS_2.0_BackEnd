@@ -21,6 +21,9 @@ public class OrdenService {
         if (datos.getIdUnidad() == null || datos.getIdUnidad().trim().isEmpty()) {
             return "Error: ID de unidad requerido.";
         }
+        if (datos.getIdUnidad().length() > 20) {
+            return "Error: El ID de unidad no puede exceder los 20 caracteres.";
+        }
         if (datos.getOrden() == null || datos.getOrden().trim().isEmpty()) {
             return "Error: La orden no puede estar vacía.";
         }

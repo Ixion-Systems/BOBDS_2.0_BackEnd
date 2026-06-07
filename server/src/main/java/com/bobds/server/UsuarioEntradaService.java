@@ -90,7 +90,7 @@ public class UsuarioEntradaService {
             } catch (Exception e) {
                 usuarios.remove(nuevoUsuario);
                 guardarUsuarios(usuarios);
-                return "Error crítico al enviar el email de verificación. Revisa la configuración del servidor o prueba de nuevo. Detalle: " + e.getMessage();
+                return "Error crítico al enviar el email. Detalle: " + e.getMessage();
             }
 
             return "Usuario '" + nombre + "' registrado. Revisá tu email para verificar la cuenta.";
@@ -173,9 +173,9 @@ public class UsuarioEntradaService {
     }
 
     public String login(String email, String password) {
-        if (email == null || email.isEmpty() || password == null || password.isEmpty()) {
+        if (email == null || email.isEmpty() || password == null || password.isEmpty())
             return "Error: Email y contraseña son requeridos.";
-        }
+        
         lock.readLock().lock();
         try {
             List<Usuario> usuarios = cargarUsuarios();
@@ -205,10 +205,10 @@ public class UsuarioEntradaService {
         try {
             List<Usuario> usuarios = cargarUsuarios();
             for (Usuario u : usuarios) {
-                if (email.equals(u.getEmail())) {
+                if (email.equals(u.getEmail()))
                     return "Bienvenido de nuevo, " + u.getNombreUsuario() + "!";
-                }
             }
+            
             int maxId = 0;
             for (Usuario usuario : usuarios) {
                 if (usuario.getIdUsuario() > maxId) {
@@ -322,9 +322,7 @@ public class UsuarioEntradaService {
 
     private List<Usuario> cargarUsuarios() throws IOException {
         File file = new File(dataFile);
-        if (!file.exists() || file.length() == 0) {
-            return new ArrayList<>();
-        }
+        if (!file.exists() || file.length() == 0) return new ArrayList<>();
         try {
             Usuario[] usuariosArray = objectMapper.readValue(file, Usuario[].class);
             return new ArrayList<>(Arrays.asList(usuariosArray));
