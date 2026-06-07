@@ -18,6 +18,12 @@ public class Unidad {
     @JsonProperty("CodVinculacion")
     private String codVinculacion;
 
+    @JsonProperty("CodGeneradoEnMs")
+    private Long codGeneradoEnMs;
+
+    @JsonProperty("CodUsado")
+    private boolean codUsado;
+
     public Unidad() {}
 
     public String getNombre() { return nombre; }
@@ -34,4 +40,10 @@ public class Unidad {
 
     public String getCodVinculacion() { return codVinculacion; }
     public void setCodVinculacion(String codVinculacion) { this.codVinculacion = codVinculacion; }
+
+    public Long getCodGeneradoEnMs() { return codGeneradoEnMs; }
+    public void setCodGeneradoEnMs(Long codGeneradoEnMs) { this.codGeneradoEnMs = codGeneradoEnMs; }
+
+    public boolean isCodUsado() { return codUsado; }
+    public void setCodUsado(boolean codUsado) { this.codUsado = codUsado; }
 }
