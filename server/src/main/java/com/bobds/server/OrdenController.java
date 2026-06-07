@@ -10,7 +10,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/orders")
 public class OrdenController {
-    
+
     @Autowired
     private OrdenService ordenService;
 
@@ -21,6 +21,20 @@ public class OrdenController {
             return ResponseEntity.badRequest().body(result);
         }
         return ResponseEntity.ok("Orden transmitida y registrada exitosamente");
+    }
+
+    /**
+     * Endpoint llamado por el simulador cuando termina una orden
+     * @param idUnidad ID de la unidad que terminó
+     * @param nomUsuario Usuario dueño de la orden
+     */
+    @PostMapping("/completada")
+    public ResponseEntity<String> ordenCompletada(@RequestParam String idUnidad) {
+        String result = ordenService.cambiarEstadoOrden(idUnidad, "Completada");
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok("Estado actualizado");
     }
 
     /**

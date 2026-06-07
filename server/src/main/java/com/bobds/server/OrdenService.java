@@ -1,6 +1,7 @@
 package com.bobds.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -17,22 +18,20 @@ public class OrdenService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Semaphore mutex = new Semaphore(1);
 
+    @Autowired
+    private RobotClient robotClient;
+
     public String registrarOrden(RegistroOrdenDTO datos) {
-        if (datos.getIdUnidad() == null || datos.getIdUnidad().trim().isEmpty()){
-             return "Error: ID de unidad requerido.";
-        }
-        if (datos.getIdUnidad().length() > 20) {
-             return "Error: El ID de unidad no puede exceder los 20 caracteres.";
-        }
-        if (datos.getOrden() == null || datos.getOrden().trim().isEmpty()) {
-             return "Error: La orden no puede estar vacía.";
-        }
-        if (datos.getOrden().length() > 50) {
-             return "Error: La orden no puede exceder los 50 caracteres.";
-        }
-        if (datos.getNotas() != null && datos.getNotas().length() > 200) {
-             return "Error: Las notas no pueden exceder los 200 caracteres.";
-        }
+        if (datos.getIdUnidad() == null || datos.getIdUnidad().trim().isEmpty())
+            return "Error: ID de unidad requerido.";
+        if (datos.getIdUnidad().length() > 20)
+            return "Error: El ID de unidad no puede exceder los 20 caracteres.";
+        if (datos.getOrden() == null || datos.getOrden().trim().isEmpty())
+            return "Error: La orden no puede estar vacía.";
+        if (datos.getOrden().length() > 50)
+            return "Error: La orden no puede exceder los 50 caracteres.";
+        if (datos.getNotas() != null && datos.getNotas().length() > 200)
+            return "Error: Las notas no pueden exceder los 200 caracteres.";
 
         try {
             mutex.acquire();
@@ -58,9 +57,54 @@ public class OrdenService {
                 vinculos.add(new OrdenUnidad(nextId, datos.getIdUnidad()));
                 guardarOrdenUnidad(vinculos);
 
+                // Avisar al simulador FUERA del semáforo para no bloquearlo
+                mutex.release();
+                robotClient.enviarOrden(datos.getIdUnidad(), datos.getOrden());
                 return "OK";
+
             } catch (IOException e) {
                 return "Error interno al guardar la orden: " + e.getMessage();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "Error: operación interrumpida.";
+        } finally {
+            // Solo libera si el semáforo sigue adquirido (no se liberó antes)
+            if (mutex.availablePermits() == 0) {
+                mutex.release();
+            }
+        }
+    }
+
+    public String cambiarEstadoOrden(String idUnidad, String nuevoEstado) {
+        try {
+            mutex.acquire();
+            try {
+                List<Orden> ordenes = cargarOrdenes();
+                List<OrdenUnidad> vinculos = cargarOrdenUnidad();
+
+                boolean encontrado = false;
+                for (OrdenUnidad ov : vinculos) {
+                    if (ov.getIdUnidad().equals(idUnidad)) {
+                        for (Orden o : ordenes) {
+                            if (o.getIdOrden() == ov.getIdOrden()
+                                    && o.getEstado().equals("En Cola")) {
+                                o.setEstado(nuevoEstado);
+                                encontrado = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (encontrado) break;
+                }
+
+                if (!encontrado)
+                    return "Error: No se encontró orden activa para unidad " + idUnidad;
+
+                guardarOrdenes(ordenes);
+                return "OK";
+            } catch (IOException e) {
+                return "Error: " + e.getMessage();
             } finally {
                 mutex.release();
             }
