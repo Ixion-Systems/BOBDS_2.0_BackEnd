@@ -3,7 +3,6 @@ package com.bobds.server;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.io.IOException;
 import java.util.List;
 
 @CrossOrigin(origins = "*")
@@ -23,15 +22,16 @@ public class OrdenController {
         return ResponseEntity.ok("Orden transmitida y registrada exitosamente");
     }
 
+    /**
+     * Endpoint to get all orders with their id and estado
+     * @return List of orders
+     */
     @GetMapping
     public ResponseEntity<List<Orden>> obtenerTodasLasOrdenes() {
-        try {
-            List<Orden> ordenes = ordenService.cargarOrdenes();
-            return ResponseEntity.ok(ordenes);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        List<Orden> ordenes = ordenService.cargarOrdenes();
+        return ResponseEntity.ok(ordenes);
     }
+
     /**
      * Endpoint to get a specific order by id
      * @param idOrden The order ID
@@ -39,16 +39,12 @@ public class OrdenController {
      */
     @GetMapping("/{idOrden}")
     public ResponseEntity<Orden> obtenerOrdenPorId(@PathVariable int idOrden) {
-        try {
-            List<Orden> ordenes = ordenService.cargarOrdenes();
-            return ordenes.stream()
-                    .filter(o -> o.getIdOrden() == idOrden)
-                    .findFirst()
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        List<Orden> ordenes = ordenService.cargarOrdenes();
+        return ordenes.stream()
+                .filter(o -> o.getIdOrden() == idOrden)
+                .findFirst()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -61,6 +57,7 @@ public class OrdenController {
         List<Orden> ordenes = ordenService.obtenerOrdenesPorUnidad(idUnidad);
         return ResponseEntity.ok(ordenes);
     }
+
     /**
      * Endpoint to delete an order
      * @param idOrden The order ID
