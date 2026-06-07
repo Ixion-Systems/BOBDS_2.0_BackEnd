@@ -22,9 +22,15 @@ public class OrdenController {
         }
         return ResponseEntity.ok("Orden transmitida y registrada exitosamente");
     }
-
-
-
+    /**
+     * Endpoint to get all orders with their id and estado
+     * @return List of orders
+     */
+    @GetMapping
+    public ResponseEntity<List<Orden>> obtenerTodasLasOrdenes() {
+        List<Orden> ordenes = ordenService.cargarOrdenes();
+        return ResponseEntity.ok(ordenes);
+    }
     /**
      * Endpoint to get a specific order by id
      * @param idOrden The order ID
