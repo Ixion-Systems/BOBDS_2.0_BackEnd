@@ -3,6 +3,7 @@ package com.bobds.server;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.io.IOException;
 import java.util.List;
 
 @CrossOrigin(origins = "*")
@@ -13,7 +14,6 @@ public class OrdenController {
     @Autowired
     private OrdenService ordenService;
 
-
     @PostMapping("/register")
     public ResponseEntity<String> registerOrder(@RequestBody RegistroOrdenDTO datos) {
         String result = ordenService.registrarOrden(datos);
@@ -23,8 +23,15 @@ public class OrdenController {
         return ResponseEntity.ok("Orden transmitida y registrada exitosamente");
     }
 
-
-
+    @GetMapping
+    public ResponseEntity<List<Orden>> obtenerTodasLasOrdenes() {
+        try {
+            List<Orden> ordenes = ordenService.cargarOrdenes();
+            return ResponseEntity.ok(ordenes);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
     /**
      * Endpoint to get a specific order by id
      * @param idOrden The order ID
@@ -32,12 +39,16 @@ public class OrdenController {
      */
     @GetMapping("/{idOrden}")
     public ResponseEntity<Orden> obtenerOrdenPorId(@PathVariable int idOrden) {
-        List<Orden> ordenes = ordenService.cargarOrdenes();
-        return ordenes.stream()
-                .filter(o -> o.getIdOrden() == idOrden)
-                .findFirst()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            List<Orden> ordenes = ordenService.cargarOrdenes();
+            return ordenes.stream()
+                    .filter(o -> o.getIdOrden() == idOrden)
+                    .findFirst()
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**
