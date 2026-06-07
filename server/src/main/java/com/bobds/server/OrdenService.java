@@ -1,6 +1,7 @@
 package com.bobds.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -16,6 +17,9 @@ public class OrdenService {
     private final String ordenUnidadFile = "../data/ordenUnidad.json";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
+    @Autowired
+    private RobotClient robotClient;
 
     public String registrarOrden(RegistroOrdenDTO datos) {
         if (datos.getIdUnidad() == null || datos.getIdUnidad().trim().isEmpty()) {
@@ -35,6 +39,7 @@ public class OrdenService {
         }
 
         lock.writeLock().lock();
+        boolean success = false;
         try {
             List<Orden> todasOrdenes = cargarOrdenesInterno();
             
@@ -62,9 +67,54 @@ public class OrdenService {
             vinculos.add(nuevoVinculo);
             guardarOrdenUnidad(vinculos);
 
-            return "OK";
+            success = true;
         } catch (IOException e) {
             return "Error interno al guardar la orden: " + e.getMessage();
+        } finally {
+            lock.writeLock().unlock();
+        }
+
+        if (success) {
+            // Avisar al simulador FUERA del lock para no bloquear al servidor web
+            try {
+                robotClient.enviarOrden(datos.getIdUnidad(), datos.getOrden());
+            } catch (Exception e) {
+                System.err.println("Aviso: No se pudo conectar con el simulador del robot: " + e.getMessage());
+            }
+            return "OK";
+        }
+        
+        return "Error: operación no completada.";
+    }
+
+    public String cambiarEstadoOrden(String idUnidad, String nuevoEstado) {
+        lock.writeLock().lock();
+        try {
+            List<Orden> ordenes = cargarOrdenesInterno();
+            List<OrdenUnidad> vinculos = cargarOrdenUnidad();
+
+            boolean encontrado = false;
+            for (OrdenUnidad ov : vinculos) {
+                if (ov.getIdUnidad() != null && ov.getIdUnidad().equals(idUnidad)) {
+                    for (Orden o : ordenes) {
+                        if (o.getIdOrden() == ov.getIdOrden() && "En Cola".equals(o.getEstado())) {
+                            o.setEstado(nuevoEstado);
+                            encontrado = true;
+                            break;
+                        }
+                    }
+                }
+                if (encontrado) break;
+            }
+
+            if (!encontrado) {
+                return "Error: No se encontró orden activa para unidad " + idUnidad;
+            }
+
+            guardarOrdenes(ordenes);
+            return "OK";
+        } catch (IOException e) {
+            return "Error interno al cambiar estado de la orden: " + e.getMessage();
         } finally {
             lock.writeLock().unlock();
         }
