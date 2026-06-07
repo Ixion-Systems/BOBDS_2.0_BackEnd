@@ -24,6 +24,14 @@ public class Usuario {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String tokenVerificacion;
 
+    @JsonProperty("TokenGeneradoEnMs")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Long tokenGeneradoEnMs;
+
+    @JsonProperty("IntentosVerificacion")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer intentosVerificacion = 0;
+
     public Usuario() {
     }
 
@@ -106,6 +114,22 @@ public class Usuario {
 
     public void setTokenVerificacion(String token) {
         this.tokenVerificacion = token;
+    }
+
+    public Long getTokenGeneradoEnMs() {
+        return tokenGeneradoEnMs;
+    }
+
+    public void setTokenGeneradoEnMs(Long tokenGeneradoEnMs) {
+        this.tokenGeneradoEnMs = tokenGeneradoEnMs;
+    }
+
+    public Integer getIntentosVerificacion() {
+        return intentosVerificacion;
+    }
+
+    public void setIntentosVerificacion(Integer intentosVerificacion) {
+        this.intentosVerificacion = intentosVerificacion;
     }
 
     @Override
