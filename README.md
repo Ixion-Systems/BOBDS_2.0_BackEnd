@@ -18,9 +18,11 @@ B.O.B.D.S. Server is the robust backend application powering the Base Operativa 
 ## Key Features
 
 * **RESTful API Architecture:** Clean, stateless API endpoints for seamless frontend integration.
+* **Multi-Client Concurrency:** High-performance file access using `ReentrantReadWriteLock` to isolate writes without bottlenecking simultaneous reads.
 * **File-based JSON Database:** Custom, lightweight JSON storage engines for users, units, and system logs.
-* **Operator Authentication:** Secure login and registration systems with token validation.
+* **Operator Authentication:** Secure login and registration systems with token validation and SHA-256 password hashing.
 * **Email Verification:** Automated email dispatch using `JavaMailSender` for two-factor authentication and operator verification.
+* **External Integration:** Resilient Java `HttpClient` to transmit orders directly to external robotic simulators with timeout protections.
 * **Secure Environment:** Sensitive credentials and local databases are strictly ignored and protected via `.gitignore` and `application-secret.properties`.
 
 ## Prerequisites
