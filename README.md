@@ -58,6 +58,11 @@ Once the server is running, it will listen on `http://localhost:8080` (or `8081`
 
 ## Code Structure
 
-* `server/src/main/java/com/bobds/server/`: Contains all Controllers, Services, and Models.
-* `server/src/main/resources/`: Application properties and configurations.
-* `data/`: The local file-based database (JSON files).
+* `server/src/main/java/com/bobds/server/`: Core application logic.
+  * `*Controller.java`: REST API endpoints handling routing for Orders, Units, and Authentication.
+  * `*Service.java`: Core business logic, concurrency handling, and file-based data management.
+  * `*DTO.java`: Data Transfer Objects providing strictly typed payload definitions for client-server communication.
+  * `JwtUtil.java` & `JwtFilter.java`: JWT generation and HTTP-only cookie-based authentication middleware.
+  * `RobotClient.java`: HTTP client responsible for transmitting orders to external robotic simulators.
+* `server/src/main/resources/`: Environment configuration (`application.properties`, `application-secret.properties`).
+* `data/`: Local persistent JSON file storage for rapid iteration and database simulation.

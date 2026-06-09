@@ -9,300 +9,313 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class UnitService {
-    private final String unidadesFile = "../data/unidades.json";
-    private final String usuarioUnidadesFile = "../data/usuarioUnidades.json";
+    private final String unitsFile = "../data/unidades.json";
+    private final String userUnitsFile = "../data/usuarioUnidades.json";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     @Autowired
-    private OrdenService ordenService;
+    private OrderService orderService;
 
-    public List<UnidadListadoDTO> getUnidadesByUsuario(String email) {
+    @Autowired
+    private UserService userService;
+
+    public List<UnitListDTO> getUnitsByUser(String email) {
         lock.readLock().lock();
-        List<UnidadListadoDTO> result = new ArrayList<>();
+        List<UnitListDTO> result = new ArrayList<>();
         try {
-            List<UsuarioUnidad> vinculos = cargarUsuarioUnidades();
-            List<Unidad> todasUnidades = cargarUnidades();
+            List<UserUnit> links = loadUserUnits();
+            List<Unit> allUnits = loadUnits();
 
-            for (UsuarioUnidad uu : vinculos) {
+            for (UserUnit uu : links) {
                 if (email != null && email.equals(uu.getEmail())) {
-                    Optional<Unidad> unitOpt = todasUnidades.stream()
-                        .filter(u -> u.getIdUnidad() != null && u.getIdUnidad().equals(uu.getIdUnidad()))
+                    Optional<Unit> unitOpt = allUnits.stream()
+                        .filter(u -> u.getUnitId() != null && u.getUnitId().equals(uu.getUnitId()))
                         .findFirst();
 
                     if (unitOpt.isPresent()) {
-                        Unidad u = unitOpt.get();
-                        result.add(new UnidadListadoDTO(
-                            u.getNombre(),
-                            u.getIdUnidad(),
-                            u.getEstado(),
-                            uu.getRol()
+                        Unit u = unitOpt.get();
+                        result.add(new UnitListDTO(
+                            u.getName(),
+                            u.getUnitId(),
+                            u.getStatus(),
+                            uu.getRole()
                         ));
                     }
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error leyendo archivos JSON: " + e.getMessage());
+            System.err.println("Error reading JSON files: " + e.getMessage());
         } finally {
             lock.readLock().unlock();
         }
         return result;
     }
 
-    public String registrarUnidad(RegistroUnidadDTO datos) {
+    public String registerUnit(RegisterUnitDTO data) {
         lock.writeLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
+            List<Unit> allUnits = loadUnits();
             
-            for (Unidad u : todasUnidades) {
-                if (u.getIdUnidad() != null && u.getIdUnidad().equals(datos.getIdUnidad())) {
-                    return "Error: El IDUnidad '" + datos.getIdUnidad() + "' ya está registrado. Por favor intente con otro ID.";
+            for (Unit u : allUnits) {
+                if (u.getUnitId() != null && u.getUnitId().equals(data.getIdUnidad())) {
+                    return "Error: The Unit ID is already registered.";
                 }
             }
 
-            if (datos.getCodVinculacion() != null && !datos.getCodVinculacion().trim().isEmpty()) {
-                boolean codeExists = todasUnidades.stream()
-                    .anyMatch(u -> datos.getCodVinculacion().equals(u.getCodVinculacion()));
-                if (codeExists) {
-                    return "Error: El código de vinculación ya está en uso por otra unidad. Genere uno nuevo.";
-                }
-            }
-
-            Unidad nueva = new Unidad();
-            nueva.setNombre(datos.getNombre());
-            nueva.setIdUnidad(datos.getIdUnidad());
-            nueva.setDescripcion(datos.getDescripcion());
-            nueva.setEstado("Inactivo");
-            nueva.setCodVinculacion(datos.getCodVinculacion());
-            nueva.setCodGeneradoEnMs(System.currentTimeMillis());
-            nueva.setCodUsado(false);
+            String newId = data.getIdUnidad();
             
-            todasUnidades.add(nueva);
-            guardarUnidades(todasUnidades);
-
-            List<UsuarioUnidad> vinculos = cargarUsuarioUnidades();
-            UsuarioUnidad nuevoVinculo = new UsuarioUnidad();
-            nuevoVinculo.setIdUnidad(datos.getIdUnidad());
-            nuevoVinculo.setEmail(datos.getEmail());
-            nuevoVinculo.setRol(datos.getRol() != null && !datos.getRol().isEmpty() ? datos.getRol() : "Propietario");
+            Unit newUnit = new Unit();
+            newUnit.setName(data.getNombre());
+            newUnit.setUnitId(newId);
+            newUnit.setDescription(data.getDescripcion());
+            newUnit.setStatus("Inactivo");
             
-            vinculos.add(nuevoVinculo);
-            guardarUsuarioUnidades(vinculos);
+            String assignedCode = data.getCodVinculacion() != null ? data.getCodVinculacion() : generateRandomCode(allUnits);
+            newUnit.setLinkCode(assignedCode);
+            
+            newUnit.setCodeGeneratedAtMs(System.currentTimeMillis());
+            newUnit.setCodeUsed(false);
+            
+            allUnits.add(newUnit);
+            saveUnits(allUnits);
+
+            List<UserUnit> links = loadUserUnits();
+            UserUnit newLink = new UserUnit();
+            newLink.setUnitId(newId);
+            newLink.setEmail(data.getUserEmail());
+            newLink.setRole("Propietario");
+            
+            links.add(newLink);
+            saveUserUnits(links);
 
             return "OK";
         } catch (IOException e) {
-            return "Error interno al guardar los datos: " + e.getMessage();
+            return "Internal error saving data: " + e.getMessage();
         } finally {
             lock.writeLock().unlock();
         }
     }
 
-    public String generateNewCode(String idUnidad) {
+    public String generateNewCode(String unitId) {
         lock.writeLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
-            Optional<Unidad> unitOpt = todasUnidades.stream()
-                .filter(u -> u.getIdUnidad() != null && u.getIdUnidad().equals(idUnidad))
+            List<Unit> allUnits = loadUnits();
+            Optional<Unit> unitOpt = allUnits.stream()
+                .filter(u -> u.getUnitId() != null && u.getUnitId().equals(unitId))
                 .findFirst();
 
             if (unitOpt.isPresent()) {
-                Unidad u = unitOpt.get();
-                String newCode = generarCodigoAleatorio(todasUnidades);
-                u.setCodVinculacion(newCode);
-                u.setCodGeneradoEnMs(System.currentTimeMillis());
-                u.setCodUsado(false);
-                guardarUnidades(todasUnidades);
+                Unit u = unitOpt.get();
+                String newCode = generateRandomCode(allUnits);
+                u.setLinkCode(newCode);
+                u.setCodeGeneratedAtMs(System.currentTimeMillis());
+                u.setCodeUsed(false);
+                saveUnits(allUnits);
                 return newCode;
             }
             return null;
         } catch (IOException e) {
-            System.err.println("Error generando código: " + e.getMessage());
+            System.err.println("Error generating code: " + e.getMessage());
             return null;
         } finally {
             lock.writeLock().unlock();
         }
     }
 
-    private String generarCodigoAleatorio(List<Unidad> todasUnidades) {
-        String letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String alfaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        String numeros = "0123456789";
-        Random r = new Random();
+    private String generateRandomCode(List<Unit> allUnits) {
+        String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String alphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        String numbers = "0123456789";
+        SecureRandom r = new SecureRandom();
         
         while (true) {
             StringBuilder part1 = new StringBuilder();
-            for (int i=0; i<2; i++) part1.append(letras.charAt(r.nextInt(letras.length())));
+            for (int i=0; i<2; i++) part1.append(letters.charAt(r.nextInt(letters.length())));
             
             StringBuilder part2 = new StringBuilder();
-            for (int i=0; i<4; i++) part2.append(alfaNum.charAt(r.nextInt(alfaNum.length())));
+            for (int i=0; i<4; i++) part2.append(alphaNum.charAt(r.nextInt(alphaNum.length())));
             
             StringBuilder part3 = new StringBuilder();
-            for (int i=0; i<2; i++) part3.append(numeros.charAt(r.nextInt(numeros.length())));
+            for (int i=0; i<2; i++) part3.append(numbers.charAt(r.nextInt(numbers.length())));
             
             String code = part1.toString() + "-" + part2.toString() + "-" + part3.toString();
-            boolean exists = todasUnidades.stream().anyMatch(u -> code.equals(u.getCodVinculacion()));
+            boolean exists = allUnits.stream().anyMatch(u -> code.equals(u.getLinkCode()));
             if (!exists) return code;
         }
     }
 
-    public UnidadInfoDTO getUnidadInfo(String idUnidad) {
+    public UnitInfoDTO getUnitInfo(String unitId) {
         lock.readLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
-            List<UsuarioUnidad> vinculos = cargarUsuarioUnidades();
+            List<Unit> allUnits = loadUnits();
+            List<UserUnit> links = loadUserUnits();
 
-            Optional<Unidad> unitOpt = todasUnidades.stream()
-                .filter(u -> u.getIdUnidad() != null && u.getIdUnidad().equals(idUnidad))
+            Optional<Unit> unitOpt = allUnits.stream()
+                .filter(u -> u.getUnitId() != null && u.getUnitId().equals(unitId))
                 .findFirst();
 
             if (unitOpt.isPresent()) {
-                Unidad u = unitOpt.get();
+                Unit u = unitOpt.get();
                 
-                String propietario = "Desconocido";
+                String owner = "Desconocido";
                 String ownerEmail = null;
-                for (UsuarioUnidad uu : vinculos) {
-                    if (uu.getIdUnidad() != null && uu.getIdUnidad().equals(idUnidad) && "Propietario".equals(uu.getRol())) {
+                for (UserUnit uu : links) {
+                    if (uu.getUnitId() != null && uu.getUnitId().equals(unitId) && "Propietario".equals(uu.getRole())) {
                         ownerEmail = uu.getEmail();
                         break;
                     }
                 }
                 
                 if (ownerEmail != null) {
-                    propietario = ownerEmail;
+                    owner = ownerEmail;
+                    // FIX CONCURRENCY FLAW: Using UserService lock
+                    userService.getLock().readLock().lock();
                     try {
                         File userFile = new File("../data/usuario.json");
                         if (userFile.exists() && userFile.length() > 0) {
-                            Usuario[] usuariosArray = objectMapper.readValue(userFile, Usuario[].class);
-                            for (Usuario usr : usuariosArray) {
+                            User[] usersArray = objectMapper.readValue(userFile, User[].class);
+                            for (User usr : usersArray) {
                                 if (ownerEmail.equals(usr.getEmail())) {
-                                    propietario = usr.getNombreUsuario();
+                                    owner = usr.getUsername();
                                     break;
                                 }
                             }
                         }
                     } catch (Exception e) {
-                        System.err.println("Error leyendo usuario.json: " + e.getMessage());
+                        System.err.println("Error reading usuario.json: " + e.getMessage());
+                    } finally {
+                        userService.getLock().readLock().unlock();
                     }
                 }
 
-                String estadoCodigo = "Vacío";
-                if (u.getCodVinculacion() != null && !u.getCodVinculacion().trim().isEmpty()) {
-                    if (u.isCodUsado()) {
-                        estadoCodigo = "Vencido por uso";
-                    } else if (u.getCodGeneradoEnMs() != null) {
-                        long diff = System.currentTimeMillis() - u.getCodGeneradoEnMs();
-                        long diezDiasEnMs = 10L * 24 * 60 * 60 * 1000;
-                        if (diff > diezDiasEnMs) {
-                            estadoCodigo = "Vencido por tiempo";
+                String codeStatus = "Vacío";
+                if (u.getLinkCode() != null && !u.getLinkCode().trim().isEmpty()) {
+                    if (u.isCodeUsed()) {
+                        codeStatus = "Vencido por uso";
+                    } else if (u.getCodeGeneratedAtMs() != null) {
+                        long diff = System.currentTimeMillis() - u.getCodeGeneratedAtMs();
+                        long tenDaysMs = 10L * 24 * 60 * 60 * 1000;
+                        if (diff > tenDaysMs) {
+                            codeStatus = "Vencido por tiempo";
                         } else {
-                            estadoCodigo = "Activo";
+                            codeStatus = "Activo";
                         }
                     } else {
-                        estadoCodigo = "Activo";
+                        codeStatus = "Activo";
                     }
                 }
 
-                return new UnidadInfoDTO(
-                    u.getNombre(),
-                    u.getIdUnidad(),
-                    u.getDescripcion(),
-                    propietario,
-                    u.getCodVinculacion(),
-                    estadoCodigo
+                return new UnitInfoDTO(
+                    u.getName(),
+                    u.getUnitId(),
+                    u.getDescription(),
+                    owner,
+                    u.getLinkCode(),
+                    codeStatus
                 );
             }
         } catch (IOException e) {
-            System.err.println("Error obteniendo info de unidad: " + e.getMessage());
+            System.err.println("Error fetching unit info: " + e.getMessage());
         } finally {
             lock.readLock().unlock();
         }
         return null;
     }
 
-    public String eliminarUnidad(String idUnidad) {
+    public String deleteUnit(String unitId) {
         lock.writeLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
-            boolean removidoUnidad = todasUnidades.removeIf(u -> u.getIdUnidad() != null && u.getIdUnidad().equals(idUnidad));
-            if (removidoUnidad) {
-                guardarUnidades(todasUnidades);
+            List<Unit> allUnits = loadUnits();
+            boolean removedUnit = allUnits.removeIf(u -> u.getUnitId() != null && u.getUnitId().equals(unitId));
+            if (removedUnit) {
+                saveUnits(allUnits);
             }
 
-            List<UsuarioUnidad> vinculos = cargarUsuarioUnidades();
-            boolean removidoVinculo = vinculos.removeIf(uu -> uu.getIdUnidad() != null && uu.getIdUnidad().equals(idUnidad));
-            if (removidoVinculo) {
-                guardarUsuarioUnidades(vinculos);
+            List<UserUnit> links = loadUserUnits();
+            boolean removedLink = links.removeIf(uu -> uu.getUnitId() != null && uu.getUnitId().equals(unitId));
+            if (removedLink) {
+                saveUserUnits(links);
             }
 
-            if (!removidoUnidad && !removidoVinculo) {
-                return "Error: No se encontró la unidad con ID " + idUnidad;
+            if (!removedUnit && !removedLink) {
+                return "Error: Unit with ID " + unitId + " not found.";
             }
 
-            ordenService.eliminarOrdenesPorUnidad(idUnidad);
+            orderService.deleteOrdersByUnit(unitId);
 
             return "OK";
         } catch (IOException e) {
-            return "Error interno al eliminar los datos: " + e.getMessage();
+            return "Internal error deleting data: " + e.getMessage();
         } finally {
             lock.writeLock().unlock();
         }
     }
 
-    public String modificarUnidad(String idUnidad, String nuevoNombre, String nuevaDescripcion) {
+    public String modifyUnit(String unitId, String newName, String newDescription) {
         lock.writeLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
-            Optional<Unidad> unitOpt = todasUnidades.stream()
-                .filter(u -> u.getIdUnidad() != null && u.getIdUnidad().equals(idUnidad))
+            List<Unit> allUnits = loadUnits();
+            Optional<Unit> unitOpt = allUnits.stream()
+                .filter(u -> u.getUnitId() != null && u.getUnitId().equals(unitId))
                 .findFirst();
 
             if (unitOpt.isPresent()) {
-                Unidad u = unitOpt.get();
-                if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) {
-                    u.setNombre(nuevoNombre);
+                Unit u = unitOpt.get();
+                if (newName != null && !newName.trim().isEmpty()) {
+                    u.setName(newName);
                 }
-                if (nuevaDescripcion != null) {
-                    u.setDescripcion(nuevaDescripcion);
+                if (newDescription != null) {
+                    u.setDescription(newDescription);
                 }
-                guardarUnidades(todasUnidades);
+                saveUnits(allUnits);
                 return "OK";
             }
-            return "Error: No se encontró la unidad con ID " + idUnidad;
+            return "Error: Unit with ID " + unitId + " not found.";
         } catch (IOException e) {
-            return "Error interno al modificar los datos: " + e.getMessage();
+            return "Internal error modifying data: " + e.getMessage();
         } finally {
             lock.writeLock().unlock();
         }
     }
 
-    public UnidadInfoDTO getUnidadInfoByCode(String code) throws Exception {
+    public UnitInfoDTO getUnitInfoByCode(String code, String email) throws Exception {
         lock.readLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
-            Optional<Unidad> unitOpt = todasUnidades.stream()
-                .filter(u -> code.equals(u.getCodVinculacion()))
+            List<Unit> allUnits = loadUnits();
+            Optional<Unit> unitOpt = allUnits.stream()
+                .filter(u -> code.equals(u.getLinkCode()))
                 .findFirst();
 
             if (unitOpt.isPresent()) {
-                Unidad u = unitOpt.get();
-                if (u.isCodUsado()) {
+                Unit u = unitOpt.get();
+
+                List<UserUnit> links = loadUserUnits();
+                boolean alreadyLinked = links.stream()
+                    .anyMatch(uu -> uu.getUnitId().equals(u.getUnitId()) && uu.getEmail().trim().equalsIgnoreCase(email.trim()));
+                
+                if (alreadyLinked) {
+                    throw new Exception("Ya te encuentras vinculado a esta unidad.");
+                }
+
+                if (u.isCodeUsed()) {
                     throw new Exception("El código ya ha sido utilizado.");
                 }
-                if (u.getCodGeneradoEnMs() != null) {
-                    long diff = System.currentTimeMillis() - u.getCodGeneradoEnMs();
-                    long diezDiasEnMs = 10L * 24 * 60 * 60 * 1000;
-                    if (diff > diezDiasEnMs) {
+                if (u.getCodeGeneratedAtMs() != null) {
+                    long diff = System.currentTimeMillis() - u.getCodeGeneratedAtMs();
+                    long tenDaysMs = 10L * 24 * 60 * 60 * 1000;
+                    if (diff > tenDaysMs) {
                         throw new Exception("El código ha expirado.");
                     }
                 }
-                return getUnidadInfo(u.getIdUnidad());
+                return getUnitInfo(u.getUnitId());
             }
             throw new Exception("Unidad no encontrada con ese código.");
         } finally {
@@ -313,34 +326,34 @@ public class UnitService {
     public String linkUserToUnit(String email, String code) {
         lock.writeLock().lock();
         try {
-            List<Unidad> todasUnidades = cargarUnidades();
-            Optional<Unidad> unitOpt = todasUnidades.stream()
-                .filter(u -> code.equals(u.getCodVinculacion()))
+            List<Unit> allUnits = loadUnits();
+            Optional<Unit> unitOpt = allUnits.stream()
+                .filter(u -> code.equals(u.getLinkCode()))
                 .findFirst();
                 
             if (!unitOpt.isPresent()) return "Error: Código no encontrado.";
-            Unidad u = unitOpt.get();
+            Unit u = unitOpt.get();
             
-            if (u.isCodUsado()) return "Error: El código ya ha sido utilizado.";
-            if (u.getCodGeneradoEnMs() != null && (System.currentTimeMillis() - u.getCodGeneradoEnMs()) > 10L * 24 * 60 * 60 * 1000) {
+            if (u.isCodeUsed()) return "Error: El código ya ha sido utilizado.";
+            if (u.getCodeGeneratedAtMs() != null && (System.currentTimeMillis() - u.getCodeGeneratedAtMs()) > 10L * 24 * 60 * 60 * 1000) {
                 return "Error: El código ha expirado.";
             }
             
-            List<UsuarioUnidad> vinculos = cargarUsuarioUnidades();
-            boolean alreadyLinked = vinculos.stream()
-                .anyMatch(uu -> uu.getIdUnidad().equals(u.getIdUnidad()) && uu.getEmail().equals(email));
+            List<UserUnit> links = loadUserUnits();
+            boolean alreadyLinked = links.stream()
+                .anyMatch(uu -> uu.getUnitId().equals(u.getUnitId()) && uu.getEmail().trim().equalsIgnoreCase(email.trim()));
                 
             if (alreadyLinked) return "Error: Ya te encuentras vinculado a esta unidad.";
             
-            UsuarioUnidad nuevoVinculo = new UsuarioUnidad();
-            nuevoVinculo.setIdUnidad(u.getIdUnidad());
-            nuevoVinculo.setEmail(email);
-            nuevoVinculo.setRol("Invitado");
-            vinculos.add(nuevoVinculo);
-            guardarUsuarioUnidades(vinculos);
+            UserUnit newLink = new UserUnit();
+            newLink.setUnitId(u.getUnitId());
+            newLink.setEmail(email);
+            newLink.setRole("Invitado");
+            links.add(newLink);
+            saveUserUnits(links);
             
-            u.setCodUsado(true);
-            guardarUnidades(todasUnidades);
+            u.setCodeUsed(true);
+            saveUnits(allUnits);
             
             return "OK";
         } catch (Exception e) {
@@ -350,19 +363,19 @@ public class UnitService {
         }
     }
 
-    public String unlinkUserFromUnit(String email, String idUnidad) {
+    public String unlinkUserFromUnit(String email, String unitId) {
         lock.writeLock().lock();
         try {
-            List<UsuarioUnidad> vinculos = cargarUsuarioUnidades();
-            Optional<UsuarioUnidad> vinculoOpt = vinculos.stream()
-                .filter(uu -> uu.getIdUnidad().equals(idUnidad) && uu.getEmail().equals(email))
+            List<UserUnit> links = loadUserUnits();
+            Optional<UserUnit> linkOpt = links.stream()
+                .filter(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(email))
                 .findFirst();
                 
-            if (!vinculoOpt.isPresent()) return "Error: No estás vinculado a esta unidad.";
-            if ("Propietario".equals(vinculoOpt.get().getRol())) return "Error: Un Propietario no puede desvincularse, debe eliminar la unidad o transferirla.";
+            if (!linkOpt.isPresent()) return "Error: No estás vinculado a esta unidad.";
+            if ("Propietario".equals(linkOpt.get().getRole())) return "Error: Un Propietario no puede desvincularse, debe eliminar la unidad o transferirla.";
             
-            vinculos.removeIf(uu -> uu.getIdUnidad().equals(idUnidad) && uu.getEmail().equals(email));
-            guardarUsuarioUnidades(vinculos);
+            links.removeIf(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(email));
+            saveUserUnits(links);
             return "OK";
         } catch (Exception e) {
             return "Error interno: " + e.getMessage();
@@ -371,27 +384,27 @@ public class UnitService {
         }
     }
 
-    private List<UsuarioUnidad> cargarUsuarioUnidades() throws IOException {
-        File file = new File(usuarioUnidadesFile);
+    private List<UserUnit> loadUserUnits() throws IOException {
+        File file = new File(userUnitsFile);
         if (!file.exists() || file.length() == 0) return new ArrayList<>();
-        UsuarioUnidad[] arr = objectMapper.readValue(file, UsuarioUnidad[].class);
+        UserUnit[] arr = objectMapper.readValue(file, UserUnit[].class);
         return new ArrayList<>(Arrays.asList(arr));
     }
 
-    private List<Unidad> cargarUnidades() throws IOException {
-        File file = new File(unidadesFile);
+    private List<Unit> loadUnits() throws IOException {
+        File file = new File(unitsFile);
         if (!file.exists() || file.length() == 0) return new ArrayList<>();
-        Unidad[] arr = objectMapper.readValue(file, Unidad[].class);
+        Unit[] arr = objectMapper.readValue(file, Unit[].class);
         return new ArrayList<>(Arrays.asList(arr));
     }
 
-    private void guardarUnidades(List<Unidad> unidades) throws IOException {
-        File file = new File(unidadesFile);
-        objectMapper.writeValue(file, unidades);
+    private void saveUnits(List<Unit> units) throws IOException {
+        File file = new File(unitsFile);
+        objectMapper.writeValue(file, units);
     }
 
-    private void guardarUsuarioUnidades(List<UsuarioUnidad> vinculos) throws IOException {
-        File file = new File(usuarioUnidadesFile);
-        objectMapper.writeValue(file, vinculos);
+    private void saveUserUnits(List<UserUnit> links) throws IOException {
+        File file = new File(userUnitsFile);
+        objectMapper.writeValue(file, links);
     }
 }

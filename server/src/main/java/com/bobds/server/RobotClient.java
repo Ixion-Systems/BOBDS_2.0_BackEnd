@@ -17,8 +17,8 @@ public class RobotClient {
 
     public void enviarOrden(String idUnidad, String orden) {
         try {
-            String body = "idUnidad=" + idUnidad +
-                          "&orden=" + orden;
+            String body = "idUnidad=" + java.net.URLEncoder.encode(idUnidad, java.nio.charset.StandardCharsets.UTF_8.toString()) +
+                          "&orden=" + java.net.URLEncoder.encode(orden, java.nio.charset.StandardCharsets.UTF_8.toString());
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ROBOT_URL))
