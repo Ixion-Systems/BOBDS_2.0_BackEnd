@@ -18,10 +18,13 @@ B.O.B.D.S. Server is the robust backend application powering the Base Operativa 
 ## Key Features
 
 * **RESTful API Architecture:** Clean, stateless API endpoints for seamless frontend integration.
+* **Server-Sent Events (SSE):** Real-time unidirectional streaming endpoints (`/api/stream`) for live updates on orders and unit statuses without polling.
+* **Role-Based Access Control (RBAC):** Hierarchical permissions (Propietario, Co-Propietario, Administrador, Operador, Invitado) regulating UI visibility and administrative actions.
+* **Unit Linking via Secret Tokens:** Secure association of units to users utilizing expendable or persistent secret codes.
 * **Multi-Client Concurrency:** High-performance file access using `ReentrantReadWriteLock` to isolate writes without bottlenecking simultaneous reads.
 * **File-based JSON Database:** Custom, lightweight JSON storage engines for users, units, and system logs.
 * **Operator Authentication:** Secure login and registration systems with token validation and SHA-256 password hashing.
-* **Email Verification:** Automated email dispatch using `JavaMailSender` for two-factor authentication and operator verification.
+* **Chronological Order Traceability:** Orders sorted dynamically by timestamps with strict monotonic ID fallbacks.
 * **External Integration:** Resilient Java `HttpClient` to transmit orders directly to external robotic simulators with timeout protections.
 * **Secure Environment:** Sensitive credentials and local databases are strictly ignored and protected via `.gitignore` and `application-secret.properties`.
 
@@ -40,6 +43,9 @@ Before running the application, ensure you have the following installed:
    ```properties
    spring.mail.password=YOUR_APP_PASSWORD
    ```
+
+   > [!CAUTION]
+   > Never commit `application-secret.properties` to version control. Ensure it is listed in your `.gitignore` to prevent leaking sensitive credentials.
 4. Build the project using Maven:
    ```bash
    ./mvnw clean install
@@ -51,10 +57,14 @@ Before running the application, ensure you have the following installed:
 
 ## Usage
 
-Once the server is running, it will listen on `http://localhost:8080` (or `8081` depending on your `application.properties`).
+> [!NOTE]
+> Once the server is running, it will listen on `http://localhost:8080` (or `8081` depending on your `application.properties`).
 
 * **API Endpoints:** Access the API via `/api/auth/*` and `/api/units/*`.
 * **Data Storage:** All persistent data will be automatically managed and stored as JSON files inside the `data/` directory at the root of the repository.
+
+> [!IMPORTANT]
+> The JSON files act as the primary database. Deleting them will wipe all users, units, and order histories permanently.
 
 ## Code Structure
 
