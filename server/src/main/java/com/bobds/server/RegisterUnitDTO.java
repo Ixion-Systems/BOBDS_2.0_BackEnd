@@ -1,14 +1,18 @@
 package com.bobds.server;
 
+/* objeto de transferencia para registrar unidad */
 public class RegisterUnitDTO {
+    /* atributos del dto */
     private String nombre;
     private String descripcion;
     private String userEmail;
     private String idUnidad;
     private String codVinculacion;
 
+    /* constructores */
     public RegisterUnitDTO() {}
 
+    /* metodos de acceso */
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
 

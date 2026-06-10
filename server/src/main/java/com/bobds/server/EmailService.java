@@ -8,16 +8,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
 
 @Service
+/* servicio de envio de correos */
 public class EmailService {
 
-    // Note: The sending password (spring.mail.password) is automatically injected
-    // through the ignored 'application-secret.properties' file for security.
     @Autowired
     private JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    /* envio de token de verificacion */
     @Async
     public void enviarVerificacion(String email, String token) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -31,6 +31,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    /* envio de token de recuperacion */
     @Async
     public void enviarRecuperacionPassword(String email, String token) {
         SimpleMailMessage message = new SimpleMailMessage();

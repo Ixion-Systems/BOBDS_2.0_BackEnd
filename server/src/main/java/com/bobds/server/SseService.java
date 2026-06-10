@@ -10,15 +10,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+/* servicio de comunicacion sse */
 public class SseService {
 
-    // Mapa de email a lista de emitters (un usuario puede tener varias pestañas abiertas)
+    /* gestor de emisores activos */
     private final Map<String, List<SseEmitter>> emittersMap = new ConcurrentHashMap<>();
 
+    /* apertura de conexion */
     public SseEmitter createEmitter(String email) {
-        // Timeout de 1 hora o sin timeout (0L no soportado en todos los tomcats, usamos 1hr)
+
         SseEmitter emitter = new SseEmitter(3600000L);
-        
+
         emittersMap.computeIfAbsent(email, k -> new ArrayList<>()).add(emitter);
 
         emitter.onCompletion(() -> removeEmitter(email, emitter));
@@ -28,6 +30,7 @@ public class SseService {
         return emitter;
     }
 
+    /* cierre de conexion */
     private void removeEmitter(String email, SseEmitter emitter) {
         List<SseEmitter> list = emittersMap.get(email);
         if (list != null) {
@@ -38,10 +41,11 @@ public class SseService {
         }
     }
 
+    /* despacho de eventos */
     public void sendEventToEmail(String email, String eventName, Object data) {
         List<SseEmitter> list = emittersMap.get(email);
         if (list != null) {
-            // Copia para iterar de forma segura sin ConcurrentModificationException
+
             List<SseEmitter> copy = new ArrayList<>(list);
             for (SseEmitter emitter : copy) {
                 try {

@@ -3,8 +3,10 @@ package com.bobds.server;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+/* entidad de usuario */
 public class User {
 
+    /* atributos de la entidad */
     @JsonProperty("IDUsuario")
     private int userId;
 
@@ -32,6 +34,7 @@ public class User {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer verificationAttempts = 0;
 
+    /* constructores */
     public User() {
     }
 
@@ -41,6 +44,7 @@ public class User {
         this.email = email;
     }
 
+    /* logica de validacion */
     public static String validateData(String user, String pass) {
         StringBuilder errors = new StringBuilder();
         if (user == null || !user.matches("^[a-zA-Z0-9]{3,30}$")) {
@@ -58,6 +62,7 @@ public class User {
         }
     }
 
+    /* metodos de acceso */
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
 

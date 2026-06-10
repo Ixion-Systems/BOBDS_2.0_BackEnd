@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
+/* servicio logico de ordenes */
 public class OrderService {
+    /* dependencias y rutas locales */
     private final String ordersFile = "../data/ordenes.json";
     private final String orderUnitFile = "../data/ordenUnidad.json";
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -24,6 +26,7 @@ public class OrderService {
     @Autowired
     private SseService sseService;
 
+    /* alta y emision de ordenes */
     public String registerOrder(RegisterOrderDTO data) {
         if (data.getUnitId() == null || data.getUnitId().trim().isEmpty()) {
             return "Error: Unit ID is required.";
@@ -46,7 +49,7 @@ public class OrderService {
         int assignedId = -1;
         try {
             List<Order> allOrders = loadOrdersInternal();
-            
+
             int maxId = 0;
             for (Order o : allOrders) {
                 if (o.getOrderId() > maxId) {
@@ -61,7 +64,7 @@ public class OrderService {
             newOrder.setNotes(data.getNotes() != null ? data.getNotes() : "");
             newOrder.setStatus("En Cola");
             newOrder.setCreatedAtMs(System.currentTimeMillis());
-            
+
             allOrders.add(newOrder);
             saveOrders(allOrders);
 
@@ -69,7 +72,7 @@ public class OrderService {
             OrderUnit newLink = new OrderUnit();
             newLink.setOrderId(assignedId);
             newLink.setUnitId(data.getUnitId());
-            
+
             links.add(newLink);
             saveOrderUnits(links);
 
@@ -89,10 +92,11 @@ public class OrderService {
             }
             return "OK";
         }
-        
+
         return "Error: operation not completed.";
     }
 
+    /* actualizacion de estado */
     public String changeOrderStatusById(int orderId, String newStatus) {
         lock.writeLock().lock();
         try {
@@ -112,13 +116,12 @@ public class OrderService {
             }
 
             saveOrders(orders);
-            
-            // Notify users about order status update
+
             String unitId = getUnitIdByOrderId(orderId);
             if (unitId != null) {
                 notifyUsersAboutOrderUpdate(unitId);
             }
-            
+
             return "OK";
         } catch (IOException e) {
             return "Internal error changing order status: " + e.getMessage();
@@ -127,6 +130,7 @@ public class OrderService {
         }
     }
 
+    /* consulta de ordenes publicas */
     public List<Order> loadOrders() {
         lock.readLock().lock();
         try {
@@ -138,7 +142,8 @@ public class OrderService {
             lock.readLock().unlock();
         }
     }
-    
+
+    /* persistencia interna json */
     private List<Order> loadOrdersInternal() throws IOException {
         File file = new File(ordersFile);
         if (!file.exists() || file.length() == 0) return new ArrayList<>();
@@ -146,6 +151,7 @@ public class OrderService {
         return new ArrayList<>(Arrays.asList(arr));
     }
 
+    /* eliminacion en cascada */
     public void deleteOrdersByUnit(String unitId) {
         lock.writeLock().lock();
         try {
@@ -154,12 +160,12 @@ public class OrderService {
                 .filter(v -> v.getUnitId() != null && v.getUnitId().equals(unitId))
                 .map(OrderUnit::getOrderId)
                 .toList();
-            
+
             if (!ordersToDelete.isEmpty()) {
                 List<Order> orders = loadOrdersInternal();
                 orders.removeIf(o -> ordersToDelete.contains(o.getOrderId()));
                 saveOrders(orders);
-                
+
                 links.removeIf(v -> v.getUnitId() != null && v.getUnitId().equals(unitId));
                 saveOrderUnits(links);
             }
@@ -170,6 +176,7 @@ public class OrderService {
         }
     }
 
+    /* consultas por unidad */
     public List<Order> getOrdersByUnit(String unitId) {
         lock.readLock().lock();
         try {
@@ -198,6 +205,7 @@ public class OrderService {
         }
     }
 
+    /* eliminacion individual */
     public String deleteOrder(int orderId) {
         lock.writeLock().lock();
         try {
@@ -255,6 +263,7 @@ public class OrderService {
         objectMapper.writeValue(file, links);
     }
 
+    /* notificaciones sse */
     private void notifyUsersAboutOrderUpdate(String unitId) {
         try {
             File file = new File("../data/usuarioUnidades.json");

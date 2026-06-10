@@ -8,13 +8,16 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 @Component
+/* cliente http para simulador */
 public class RobotClient {
 
+    /* variables y configuracion */
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
             .build();
     private static final String ROBOT_URL = "http://localhost:7777/robot/ejecutar";
 
+    /* transmision de comandos por red */
     public void enviarOrden(String idUnidad, int idOrden, String orden) {
         try {
             String body = "idUnidad=" + java.net.URLEncoder.encode(idUnidad, java.nio.charset.StandardCharsets.UTF_8.toString()) +

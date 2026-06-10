@@ -16,8 +16,10 @@ import java.security.SecureRandom;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
+/* servicio logico de usuarios */
 public class UserService {
 
+    /* dependencias y rutas locales */
     private final String dataFile;
     private final ObjectMapper objectMapper;
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -25,6 +27,7 @@ public class UserService {
     @Autowired
     private EmailService emailService;
 
+    /* constructores e inicializacion */
     public UserService() {
         this.dataFile = "../data/usuario.json";
         this.objectMapper = new ObjectMapper();
@@ -35,6 +38,7 @@ public class UserService {
         }
     }
 
+    /* utilidades de seguridad */
     private String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -51,6 +55,7 @@ public class UserService {
         }
     }
 
+    /* registro tradicional */
     public String signUp(String name, String password, String email) {
         String validationResult = User.validateData(name, password);
         if (!"OK".equals(validationResult)) {
@@ -81,7 +86,7 @@ public class UserService {
             newUser.setVerificationToken(token);
             newUser.setTokenGeneratedAtMs(System.currentTimeMillis());
             newUser.setVerificationAttempts(0);
-            
+
             users.add(newUser);
             saveUsers(users);
             try {
@@ -100,6 +105,7 @@ public class UserService {
         }
     }
 
+    /* validacion de correo */
     public String verifyEmail(String email, String token) {
         lock.writeLock().lock();
         try {
@@ -108,7 +114,7 @@ public class UserService {
                 if (email.equals(u.getEmail())) {
                     if (u.isVerified()) return "Account already verified.";
                     if (u.getVerificationToken() == null) return "Error: No pending code.";
-                    
+
                     long diff = System.currentTimeMillis() - (u.getTokenGeneratedAtMs() != null ? u.getTokenGeneratedAtMs() : 0);
                     if (diff > 15 * 60 * 1000) {
                         return "Error: Code expired (15 min).";
@@ -141,6 +147,7 @@ public class UserService {
         }
     }
 
+    /* reenvio de codigo */
     public String resendCode(String email) {
         lock.writeLock().lock();
         try {
@@ -171,10 +178,11 @@ public class UserService {
         }
     }
 
+    /* inicio de sesion local */
     public String login(String email, String password) {
         if (email == null || email.isEmpty() || password == null || password.isEmpty())
             return "Error: Email and password are required.";
-        
+
         lock.readLock().lock();
         try {
             List<User> users = loadUsers();
@@ -198,6 +206,7 @@ public class UserService {
         }
     }
 
+    /* registro y login por google */
     public String signUpGoogle(String name, String email) {
         lock.writeLock().lock();
         try {
@@ -206,7 +215,7 @@ public class UserService {
                 if (email.equals(u.getEmail()))
                     return "Welcome back, " + u.getUsername() + "!";
             }
-            
+
             int maxId = 0;
             for (User user : users) {
                 if (user.getUserId() > maxId) {
@@ -228,6 +237,7 @@ public class UserService {
         }
     }
 
+    /* solicitud de recuperacion */
     public String requestPasswordReset(String email) {
         lock.writeLock().lock();
         try {
@@ -255,6 +265,7 @@ public class UserService {
         }
     }
 
+    /* validacion de token temporal */
     public String verifyResetCode(String email, String token) {
         lock.writeLock().lock();
         try {
@@ -262,7 +273,7 @@ public class UserService {
             for (User u : users) {
                 if (email.equals(u.getEmail())) {
                     if (u.getVerificationToken() == null) return "Error: No pending code.";
-                    
+
                     long diff = System.currentTimeMillis() - (u.getTokenGeneratedAtMs() != null ? u.getTokenGeneratedAtMs() : 0);
                     if (diff > 15 * 60 * 1000) {
                         return "Error: Code expired (15 min).";
@@ -291,6 +302,7 @@ public class UserService {
         }
     }
 
+    /* cambio definitivo de clave */
     public String changePassword(String email, String token, String newPassword) {
         lock.writeLock().lock();
         try {
@@ -318,10 +330,12 @@ public class UserService {
         }
     }
 
+    /* getters concurrentes */
     public ReentrantReadWriteLock getLock() {
         return lock;
     }
 
+    /* persistencia de datos json */
     private List<User> loadUsers() throws IOException {
         File file = new File(dataFile);
         if (!file.exists() || file.length() == 0) return new ArrayList<>();

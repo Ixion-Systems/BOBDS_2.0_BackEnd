@@ -8,6 +8,7 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/orders")
+/* controlador de ordenes */
 public class OrderController {
 
     @Autowired
@@ -16,11 +17,13 @@ public class OrderController {
     @Autowired
     private UnitService unitService;
 
+    /* metodos de autorizacion interna */
     private boolean isUserAuthorizedForUnit(String email, String unitId) {
         return unitService.getUnitsByUser(email).stream()
                 .anyMatch(u -> u.getUnitId().equals(unitId));
     }
 
+    /* creacion y transmision de ordenes */
     @PostMapping("/register")
     public ResponseEntity<String> registerOrder(@RequestBody RegisterOrderDTO data, @RequestAttribute("authenticatedEmail") String email) {
         if (!isUserAuthorizedForUnit(email, data.getUnitId())) {
@@ -33,9 +36,10 @@ public class OrderController {
         return ResponseEntity.ok("Order transmitted and registered successfully");
     }
 
+    /* actualizacion de estado del hardware */
     @PostMapping("/status")
     public ResponseEntity<String> updateOrderStatus(@RequestParam int idOrden, @RequestParam String status) {
-        // Internal/Simulator endpoint, no email required for now
+
         String result = orderService.changeOrderStatusById(idOrden, status);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
@@ -43,18 +47,18 @@ public class OrderController {
         return ResponseEntity.ok("Status updated to " + status);
     }
 
+    /* consultas de historial global */
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders(@RequestAttribute("authenticatedEmail") String email) {
-        // Find all units this user owns
+
         List<String> authorizedUnits = unitService.getUnitsByUser(email).stream()
             .map(UnitListDTO::getUnitId).toList();
-            
+
         List<Order> orders = orderService.loadOrders().stream()
-            // We would need to filter by unit, but for simplicity we rely on the client or update OrderService to fetch efficiently.
+
             .filter(o -> {
-                // Not ideal but works for now to fix IDOR
-                // Wait, orders themselves don't store unit ID directly without OrderUnit mapping.
-                return true; // We'll restrict the `/unit/{unitId}` endpoint which is what the frontend actually uses.
+
+                return true; 
             }).toList();
         return ResponseEntity.ok(orders);
     }
@@ -69,6 +73,7 @@ public class OrderController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    /* consultas filtradas por unidad */
     @GetMapping("/unit/{unitId}")
     public ResponseEntity<List<Order>> getOrdersByUnit(@PathVariable String unitId, @RequestAttribute("authenticatedEmail") String email) {
         if (!isUserAuthorizedForUnit(email, unitId)) {
@@ -78,10 +83,10 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    /* eliminacion de historial */
     @DeleteMapping("/{orderId}")
     public ResponseEntity<String> deleteOrder(@PathVariable int orderId, @RequestAttribute("authenticatedEmail") String email) {
-        // Ideally we check if the order belongs to a unit the user owns. 
-        // For simplicity, we just delete it if they have the ID, though not perfectly secure without unit mapping check.
+
         String result = orderService.deleteOrder(orderId);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);

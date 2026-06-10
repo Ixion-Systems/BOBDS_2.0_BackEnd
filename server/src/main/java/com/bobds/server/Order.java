@@ -3,7 +3,9 @@ package com.bobds.server;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+/* entidad de orden */
 public class Order {
+    /* atributos de la entidad */
     @JsonProperty("idOrden")
     private int orderId;
 
@@ -29,8 +31,10 @@ public class Order {
     @JsonProperty("notas")
     private String notes;
 
+    /* constructores */
     public Order() {}
 
+    /* metodos de acceso */
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
 

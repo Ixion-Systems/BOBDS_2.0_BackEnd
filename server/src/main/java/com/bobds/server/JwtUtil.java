@@ -10,11 +10,14 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
+/* utilidades de jwt */
 public class JwtUtil {
-    // Usamos una clave estática en lugar de aleatoria para que las sesiones sobrevivan reinicios
-    private final SecretKey key = Keys.hmacShaKeyFor("BobDoSomethingSecretKeyBobDoSomethingSecretKey123!".getBytes());
-    private final long expirationMs = 86400000; // 1 day
 
+    /* claves y variables */
+    private final SecretKey key = Keys.hmacShaKeyFor("BobDoSomethingSecretKeyBobDoSomethingSecretKey123!".getBytes());
+    private final long expirationMs = 86400000; 
+
+    /* generacion de tokens */
     public String generateToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
@@ -24,6 +27,7 @@ public class JwtUtil {
                 .compact();
     }
 
+    /* validacion de tokens */
     public String validateTokenAndGetEmail(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
