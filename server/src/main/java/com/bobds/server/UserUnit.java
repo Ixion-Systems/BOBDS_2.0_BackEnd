@@ -2,7 +2,9 @@ package com.bobds.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/* entidad relacion usuario-unidad */
 public class UserUnit {
+    /* atributos de la entidad */
     @JsonProperty("IDUnidad")
     private String unitId;
 
@@ -12,8 +14,10 @@ public class UserUnit {
     @JsonProperty("Rol")
     private String role;
 
+    /* constructores */
     public UserUnit() {}
 
+    /* metodos de acceso */
     public String getUnitId() { return unitId; }
     public void setUnitId(String unitId) { this.unitId = unitId; }
 

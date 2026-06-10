@@ -2,7 +2,9 @@ package com.bobds.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/* objeto de transferencia para registrar orden */
 public class RegisterOrderDTO {
+    /* atributos del dto */
     @JsonProperty("idUnidad")
     private String unitId;
     @JsonProperty("orden")
@@ -11,8 +13,10 @@ public class RegisterOrderDTO {
     @JsonProperty("notas")
     private String notes;
 
+    /* constructores */
     public RegisterOrderDTO() {}
 
+    /* metodos de acceso */
     public String getUnitId() { return unitId; }
     public void setUnitId(String unitId) { this.unitId = unitId; }
 

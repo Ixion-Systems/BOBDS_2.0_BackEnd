@@ -12,11 +12,13 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/stream")
+/* controlador de eventos sse */
 public class StreamController {
 
     @Autowired
     private SseService sseService;
 
+    /* apertura de conexion persistente */
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamEvents(@RequestAttribute("authenticatedEmail") String email) {
         return sseService.createEmitter(email);

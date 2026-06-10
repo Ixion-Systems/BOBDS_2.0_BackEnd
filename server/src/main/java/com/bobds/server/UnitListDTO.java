@@ -2,7 +2,9 @@ package com.bobds.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/* objeto de transferencia para listar unidades */
 public class UnitListDTO {
+    /* atributos del dto */
     @JsonProperty("nombre")
     private String name;
     @JsonProperty("idUnidad")
@@ -12,6 +14,7 @@ public class UnitListDTO {
     @JsonProperty("rol")
     private String role;
 
+    /* constructores */
     public UnitListDTO(String name, String unitId, String status, String role) {
         this.name = name;
         this.unitId = unitId;
@@ -19,6 +22,7 @@ public class UnitListDTO {
         this.role = role;
     }
 
+    /* metodos de acceso */
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

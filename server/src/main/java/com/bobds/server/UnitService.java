@@ -15,7 +15,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
+/* servicio logico de unidades */
 public class UnitService {
+    /* dependencias y rutas locales */
     private final String unitsFile = "../data/unidades.json";
     private final String userUnitsFile = "../data/usuarioUnidades.json";
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -27,6 +29,7 @@ public class UnitService {
     @Autowired
     private UserService userService;
 
+    /* consultas de unidades por usuario */
     public List<UnitListDTO> getUnitsByUser(String email) {
         lock.readLock().lock();
         List<UnitListDTO> result = new ArrayList<>();
@@ -59,11 +62,12 @@ public class UnitService {
         return result;
     }
 
+    /* alta de nuevo hardware */
     public String registerUnit(RegisterUnitDTO data) {
         lock.writeLock().lock();
         try {
             List<Unit> allUnits = loadUnits();
-            
+
             for (Unit u : allUnits) {
                 if (u.getUnitId() != null && u.getUnitId().equals(data.getIdUnidad())) {
                     return "Error: The Unit ID is already registered.";
@@ -71,19 +75,19 @@ public class UnitService {
             }
 
             String newId = data.getIdUnidad();
-            
+
             Unit newUnit = new Unit();
             newUnit.setName(data.getNombre());
             newUnit.setUnitId(newId);
             newUnit.setDescription(data.getDescripcion());
             newUnit.setStatus("Inactivo");
-            
+
             String assignedCode = data.getCodVinculacion() != null ? data.getCodVinculacion() : generateRandomCode(allUnits);
             newUnit.setLinkCode(assignedCode);
-            
+
             newUnit.setCodeGeneratedAtMs(System.currentTimeMillis());
             newUnit.setCodeUsed(false);
-            
+
             allUnits.add(newUnit);
             saveUnits(allUnits);
 
@@ -92,7 +96,7 @@ public class UnitService {
             newLink.setUnitId(newId);
             newLink.setEmail(data.getUserEmail());
             newLink.setRole("Propietario");
-            
+
             links.add(newLink);
             saveUserUnits(links);
 
@@ -104,6 +108,7 @@ public class UnitService {
         }
     }
 
+    /* renovacion de codigos */
     public String generateNewCode(String unitId) {
         lock.writeLock().lock();
         try {
@@ -130,28 +135,30 @@ public class UnitService {
         }
     }
 
+    /* utilidades aleatorias */
     private String generateRandomCode(List<Unit> allUnits) {
         String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         String alphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         String numbers = "0123456789";
         SecureRandom r = new SecureRandom();
-        
+
         while (true) {
             StringBuilder part1 = new StringBuilder();
             for (int i=0; i<2; i++) part1.append(letters.charAt(r.nextInt(letters.length())));
-            
+
             StringBuilder part2 = new StringBuilder();
             for (int i=0; i<4; i++) part2.append(alphaNum.charAt(r.nextInt(alphaNum.length())));
-            
+
             StringBuilder part3 = new StringBuilder();
             for (int i=0; i<2; i++) part3.append(numbers.charAt(r.nextInt(numbers.length())));
-            
+
             String code = part1.toString() + "-" + part2.toString() + "-" + part3.toString();
             boolean exists = allUnits.stream().anyMatch(u -> code.equals(u.getLinkCode()));
             if (!exists) return code;
         }
     }
 
+    /* consulta de informacion detallada */
     public UnitInfoDTO getUnitInfo(String unitId) {
         lock.readLock().lock();
         try {
@@ -164,7 +171,7 @@ public class UnitService {
 
             if (unitOpt.isPresent()) {
                 Unit u = unitOpt.get();
-                
+
                 String owner = "Desconocido";
                 String ownerEmail = null;
                 for (UserUnit uu : links) {
@@ -173,10 +180,10 @@ public class UnitService {
                         break;
                     }
                 }
-                
+
                 if (ownerEmail != null) {
                     owner = ownerEmail;
-                    // FIX CONCURRENCY FLAW: Using UserService lock
+
                     userService.getLock().readLock().lock();
                     try {
                         File userFile = new File("../data/usuario.json");
@@ -230,6 +237,7 @@ public class UnitService {
         return null;
     }
 
+    /* baja de hardware */
     public String deleteUnit(String unitId) {
         lock.writeLock().lock();
         try {
@@ -259,6 +267,7 @@ public class UnitService {
         }
     }
 
+    /* edicion de metadatos */
     public String modifyUnit(String unitId, String newName, String newDescription) {
         lock.writeLock().lock();
         try {
@@ -286,6 +295,7 @@ public class UnitService {
         }
     }
 
+    /* busqueda para vinculacion */
     public UnitInfoDTO getUnitInfoByCode(String code, String email) throws Exception {
         lock.readLock().lock();
         try {
@@ -300,7 +310,7 @@ public class UnitService {
                 List<UserUnit> links = loadUserUnits();
                 boolean alreadyLinked = links.stream()
                     .anyMatch(uu -> uu.getUnitId().equals(u.getUnitId()) && uu.getEmail().trim().equalsIgnoreCase(email.trim()));
-                
+
                 if (alreadyLinked) {
                     throw new Exception("Ya te encuentras vinculado a esta unidad.");
                 }
@@ -323,6 +333,7 @@ public class UnitService {
         }
     }
 
+    /* autorizacion de invitados */
     public String linkUserToUnit(String email, String code) {
         lock.writeLock().lock();
         try {
@@ -330,31 +341,31 @@ public class UnitService {
             Optional<Unit> unitOpt = allUnits.stream()
                 .filter(u -> code.equals(u.getLinkCode()))
                 .findFirst();
-                
+
             if (!unitOpt.isPresent()) return "Error: Código no encontrado.";
             Unit u = unitOpt.get();
-            
+
             if (u.isCodeUsed()) return "Error: El código ya ha sido utilizado.";
             if (u.getCodeGeneratedAtMs() != null && (System.currentTimeMillis() - u.getCodeGeneratedAtMs()) > 10L * 24 * 60 * 60 * 1000) {
                 return "Error: El código ha expirado.";
             }
-            
+
             List<UserUnit> links = loadUserUnits();
             boolean alreadyLinked = links.stream()
                 .anyMatch(uu -> uu.getUnitId().equals(u.getUnitId()) && uu.getEmail().trim().equalsIgnoreCase(email.trim()));
-                
+
             if (alreadyLinked) return "Error: Ya te encuentras vinculado a esta unidad.";
-            
+
             UserUnit newLink = new UserUnit();
             newLink.setUnitId(u.getUnitId());
             newLink.setEmail(email);
             newLink.setRole("Invitado");
             links.add(newLink);
             saveUserUnits(links);
-            
+
             u.setCodeUsed(true);
             saveUnits(allUnits);
-            
+
             return "OK";
         } catch (Exception e) {
             return "Error interno: " + e.getMessage();
@@ -363,6 +374,7 @@ public class UnitService {
         }
     }
 
+    /* desvinculacion de usuarios */
     public String unlinkUserFromUnit(String email, String unitId) {
         lock.writeLock().lock();
         try {
@@ -370,10 +382,10 @@ public class UnitService {
             Optional<UserUnit> linkOpt = links.stream()
                 .filter(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(email))
                 .findFirst();
-                
+
             if (!linkOpt.isPresent()) return "Error: No estás vinculado a esta unidad.";
             if ("Propietario".equals(linkOpt.get().getRole())) return "Error: Un Propietario no puede desvincularse, debe eliminar la unidad o transferirla.";
-            
+
             links.removeIf(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(email));
             saveUserUnits(links);
             return "OK";
@@ -387,6 +399,7 @@ public class UnitService {
     @Autowired
     private SseService sseService;
 
+    /* actualizacion de estado en vivo */
     public String changeUnitStatus(String unitId, String status) {
         lock.writeLock().lock();
         try {
@@ -412,6 +425,7 @@ public class UnitService {
         }
     }
 
+    /* notificaciones sse */
     private void notifyUsersAboutUnitUpdate(String unitId) {
         try {
             List<UserUnit> arr = loadUserUnits();
@@ -425,6 +439,7 @@ public class UnitService {
         }
     }
 
+    /* persistencia de datos json */
     private List<UserUnit> loadUserUnits() throws IOException {
         File file = new File(userUnitsFile);
         if (!file.exists() || file.length() == 0) return new ArrayList<>();

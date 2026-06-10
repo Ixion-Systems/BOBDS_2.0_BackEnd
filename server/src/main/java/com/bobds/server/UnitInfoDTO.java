@@ -2,7 +2,9 @@ package com.bobds.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/* objeto de transferencia para informacion de unidad */
 public class UnitInfoDTO {
+    /* atributos del dto */
     @JsonProperty("nombre")
     private String name;
     @JsonProperty("idUnidad")
@@ -16,6 +18,7 @@ public class UnitInfoDTO {
     @JsonProperty("estadoCodigo")
     private String codeStatus;
 
+    /* constructores */
     public UnitInfoDTO(String name, String unitId, String description, String owner, String linkCode, String codeStatus) {
         this.name = name;
         this.unitId = unitId;
@@ -25,6 +28,7 @@ public class UnitInfoDTO {
         this.codeStatus = codeStatus;
     }
 
+    /* metodos de acceso */
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

@@ -3,7 +3,9 @@ package com.bobds.server;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+/* entidad de unidad */
 public class Unit {
+    /* atributos de la entidad */
     @JsonProperty("IDUnidad")
     private String unitId;
 
@@ -26,8 +28,10 @@ public class Unit {
     @JsonProperty("CodUsado")
     private boolean codeUsed = false;
 
+    /* constructores */
     public Unit() {}
 
+    /* metodos de acceso */
     public String getUnitId() { return unitId; }
     public void setUnitId(String unitId) { this.unitId = unitId; }
 

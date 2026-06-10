@@ -12,17 +12,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+/* filtro de autenticacion jwt */
 public class JwtFilter extends OncePerRequestFilter {
 
+    /* utilidades jwt */
     @Autowired
     private JwtUtil jwtUtil;
 
+    /* logica principal de filtrado */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        
+
         if (path.startsWith("/api/auth/") || path.equals("/api/orders/status") || path.equals("/api/units/status")) {
             filterChain.doFilter(request, response);
             return;
@@ -52,7 +55,6 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Add email to request attributes so controllers can use it if needed securely
         request.setAttribute("authenticatedEmail", email);
 
         filterChain.doFilter(request, response);

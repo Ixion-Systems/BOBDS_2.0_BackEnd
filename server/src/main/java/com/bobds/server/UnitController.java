@@ -9,17 +9,20 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/units")
+/* controlador de unidades */
 public class UnitController {
-    
+
     @Autowired
     private UnitService unitService;
 
+    /* consulta de unidades de usuario */
     @GetMapping("/user")
     public ResponseEntity<List<UnitListDTO>> getUserUnits(@RequestAttribute("authenticatedEmail") String email) {
         List<UnitListDTO> units = unitService.getUnitsByUser(email);
         return ResponseEntity.ok(units);
     }
 
+    /* registro de nuevas unidades */
     @PostMapping("/register")
     public ResponseEntity<String> registerUnit(@RequestBody RegisterUnitDTO datos, @RequestAttribute("authenticatedEmail") String email) {
         datos.setUserEmail(email);
@@ -30,6 +33,7 @@ public class UnitController {
         return ResponseEntity.ok("Unit registered successfully");
     }
 
+    /* eliminacion de unidades */
     @DeleteMapping("/DeleteUnit/{idUnidad}")
     public ResponseEntity<String> deleteUnit(@PathVariable String idUnidad) {
         String result = unitService.deleteUnit(idUnidad);
@@ -39,6 +43,7 @@ public class UnitController {
         return ResponseEntity.ok("Unit deleted successfully");
     }
 
+    /* consulta de informacion especifica */
     @GetMapping("/info/{idUnidad}")
     public ResponseEntity<UnitInfoDTO> getUnitInfo(@PathVariable String idUnidad) {
         UnitInfoDTO info = unitService.getUnitInfo(idUnidad);
@@ -48,6 +53,7 @@ public class UnitController {
         return ResponseEntity.notFound().build();
     }
 
+    /* generacion de codigos de vinculacion */
     @PostMapping("/{idUnidad}/generate-code")
     public ResponseEntity<String> generateCode(@PathVariable String idUnidad) {
         String newCode = unitService.generateNewCode(idUnidad);
@@ -67,6 +73,7 @@ public class UnitController {
         }
     }
 
+    /* vinculacion de unidades */
     @PostMapping("/link")
     public ResponseEntity<String> linkUnit(@RequestBody java.util.Map<String, String> payload, @RequestAttribute("authenticatedEmail") String email) {
         String code = payload.get("code");
@@ -86,6 +93,7 @@ public class UnitController {
         return ResponseEntity.ok("Unit unlinked successfully");
     }
 
+    /* modificacion de unidades */
     @PutMapping("/update/{idUnidad}")
     public ResponseEntity<String> updateUnit(@PathVariable String idUnidad, @RequestBody java.util.Map<String, String> payload) {
         String nombre = payload.get("nombre");
@@ -97,9 +105,10 @@ public class UnitController {
         return ResponseEntity.ok("Unit modified successfully");
     }
 
+    /* actualizacion de estado del hardware */
     @PostMapping("/status")
     public ResponseEntity<String> updateUnitStatus(@RequestParam String idUnidad, @RequestParam String status) {
-        // Internal/Simulator endpoint, no email required for now
+
         String result = unitService.changeUnitStatus(idUnidad, status);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
