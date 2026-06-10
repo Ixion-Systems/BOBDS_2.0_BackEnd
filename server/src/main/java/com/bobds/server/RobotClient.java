@@ -15,9 +15,10 @@ public class RobotClient {
             .build();
     private static final String ROBOT_URL = "http://localhost:7777/robot/ejecutar";
 
-    public void enviarOrden(String idUnidad, String orden) {
+    public void enviarOrden(String idUnidad, int idOrden, String orden) {
         try {
             String body = "idUnidad=" + java.net.URLEncoder.encode(idUnidad, java.nio.charset.StandardCharsets.UTF_8.toString()) +
+                          "&idOrden=" + idOrden + 
                           "&orden=" + java.net.URLEncoder.encode(orden, java.nio.charset.StandardCharsets.UTF_8.toString());
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -28,7 +29,7 @@ public class RobotClient {
                 .build();
 
             httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("Orden enviada al simulador: " + idUnidad);
+            System.out.println("Orden enviada al simulador: " + idUnidad + " (ID: " + idOrden + ")");
         } catch (Exception e) {
             System.err.println("Error al contactar al simulador: " + e.getMessage());
         }

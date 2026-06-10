@@ -11,7 +11,8 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // Usamos una clave estática en lugar de aleatoria para que las sesiones sobrevivan reinicios
+    private final SecretKey key = Keys.hmacShaKeyFor("BobDoSomethingSecretKeyBobDoSomethingSecretKey123!".getBytes());
     private final long expirationMs = 86400000; // 1 day
 
     public String generateToken(String email) {
