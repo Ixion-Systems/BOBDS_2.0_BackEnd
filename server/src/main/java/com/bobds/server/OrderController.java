@@ -33,14 +33,14 @@ public class OrderController {
         return ResponseEntity.ok("Order transmitted and registered successfully");
     }
 
-    @PostMapping("/completada")
-    public ResponseEntity<String> orderCompleted(@RequestParam String idUnidad) {
+    @PostMapping("/status")
+    public ResponseEntity<String> updateOrderStatus(@RequestParam int idOrden, @RequestParam String status) {
         // Internal/Simulator endpoint, no email required for now
-        String result = orderService.changeOrderStatus(idUnidad, "Completada");
+        String result = orderService.changeOrderStatusById(idOrden, status);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
         }
-        return ResponseEntity.ok("Status updated");
+        return ResponseEntity.ok("Status updated to " + status);
     }
 
     @GetMapping

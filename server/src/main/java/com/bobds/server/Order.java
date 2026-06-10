@@ -23,6 +23,9 @@ public class Order {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private String timestamp;
 
+    @JsonProperty("createdAtMs")
+    private long createdAtMs;
+
     @JsonProperty("notas")
     private String notes;
 
@@ -45,6 +48,9 @@ public class Order {
 
     public String getTimestamp() { return timestamp; }
     public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+
+    public long getCreatedAtMs() { return createdAtMs; }
+    public void setCreatedAtMs(long createdAtMs) { this.createdAtMs = createdAtMs; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

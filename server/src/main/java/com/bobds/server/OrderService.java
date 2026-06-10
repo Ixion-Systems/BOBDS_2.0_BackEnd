@@ -21,6 +21,9 @@ public class OrderService {
     @Autowired
     private RobotClient robotClient;
 
+    @Autowired
+    private SseService sseService;
+
     public String registerOrder(RegisterOrderDTO data) {
         if (data.getUnitId() == null || data.getUnitId().trim().isEmpty()) {
             return "Error: Unit ID is required.";
@@ -40,6 +43,7 @@ public class OrderService {
 
         lock.writeLock().lock();
         boolean success = false;
+        int assignedId = -1;
         try {
             List<Order> allOrders = loadOrdersInternal();
             
@@ -49,20 +53,21 @@ public class OrderService {
                     maxId = o.getOrderId();
                 }
             }
-            int nextId = maxId + 1;
+            assignedId = maxId + 1;
 
             Order newOrder = new Order();
-            newOrder.setOrderId(nextId);
+            newOrder.setOrderId(assignedId);
             newOrder.setCommand(data.getCommand());
             newOrder.setNotes(data.getNotes() != null ? data.getNotes() : "");
             newOrder.setStatus("En Cola");
+            newOrder.setCreatedAtMs(System.currentTimeMillis());
             
             allOrders.add(newOrder);
             saveOrders(allOrders);
 
             List<OrderUnit> links = loadOrderUnits();
             OrderUnit newLink = new OrderUnit();
-            newLink.setOrderId(nextId);
+            newLink.setOrderId(assignedId);
             newLink.setUnitId(data.getUnitId());
             
             links.add(newLink);
@@ -76,8 +81,9 @@ public class OrderService {
         }
 
         if (success) {
+            notifyUsersAboutOrderUpdate(data.getUnitId());
             try {
-                robotClient.enviarOrden(data.getUnitId(), data.getCommand());
+                robotClient.enviarOrden(data.getUnitId(), assignedId, data.getCommand());
             } catch (Exception e) {
                 System.err.println("Warning: Could not connect to robot simulator: " + e.getMessage());
             }
@@ -87,31 +93,32 @@ public class OrderService {
         return "Error: operation not completed.";
     }
 
-    public String changeOrderStatus(String unitId, String newStatus) {
+    public String changeOrderStatusById(int orderId, String newStatus) {
         lock.writeLock().lock();
         try {
             List<Order> orders = loadOrdersInternal();
-            List<OrderUnit> links = loadOrderUnits();
-
             boolean found = false;
-            for (OrderUnit ou : links) {
-                if (ou.getUnitId() != null && ou.getUnitId().equals(unitId)) {
-                    for (Order o : orders) {
-                        if (o.getOrderId() == ou.getOrderId() && "En Cola".equals(o.getStatus())) {
-                            o.setStatus(newStatus);
-                            found = true;
-                            break;
-                        }
-                    }
+
+            for (Order o : orders) {
+                if (o.getOrderId() == orderId) {
+                    o.setStatus(newStatus);
+                    found = true;
+                    break;
                 }
-                if (found) break;
             }
 
             if (!found) {
-                return "Error: No active order found for unit " + unitId;
+                return "Error: No order found with ID " + orderId;
             }
 
             saveOrders(orders);
+            
+            // Notify users about order status update
+            String unitId = getUnitIdByOrderId(orderId);
+            if (unitId != null) {
+                notifyUsersAboutOrderUpdate(unitId);
+            }
+            
             return "OK";
         } catch (IOException e) {
             return "Internal error changing order status: " + e.getMessage();
@@ -224,6 +231,20 @@ public class OrderService {
         return new ArrayList<>(Arrays.asList(arr));
     }
 
+    private String getUnitIdByOrderId(int orderId) {
+        try {
+            List<OrderUnit> links = loadOrderUnits();
+            for (OrderUnit link : links) {
+                if (link.getOrderId() == orderId) {
+                    return link.getUnitId();
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error finding unit by order id: " + e.getMessage());
+        }
+        return null;
+    }
+
     private void saveOrders(List<Order> orders) throws IOException {
         File file = new File(ordersFile);
         objectMapper.writeValue(file, orders);
@@ -232,5 +253,20 @@ public class OrderService {
     private void saveOrderUnits(List<OrderUnit> links) throws IOException {
         File file = new File(orderUnitFile);
         objectMapper.writeValue(file, links);
+    }
+
+    private void notifyUsersAboutOrderUpdate(String unitId) {
+        try {
+            File file = new File("../data/usuarioUnidades.json");
+            if (!file.exists() || file.length() == 0) return;
+            UserUnit[] arr = objectMapper.readValue(file, UserUnit[].class);
+            for (UserUnit uu : arr) {
+                if (uu.getUnitId() != null && uu.getUnitId().equals(unitId)) {
+                    sseService.sendEventToEmail(uu.getEmail(), "order_update", unitId);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error notifying order updates: " + e.getMessage());
+        }
     }
 }

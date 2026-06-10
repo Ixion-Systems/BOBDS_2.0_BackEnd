@@ -34,3 +34,8 @@ build/
 
 ### Secrets ###
 application-secret.properties
+
+### Database Files ###
+ordenes.json
+unidades.json
+ordenes_unidades.json

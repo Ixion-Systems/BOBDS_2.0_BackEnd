@@ -96,4 +96,14 @@ public class UnitController {
         }
         return ResponseEntity.ok("Unit modified successfully");
     }
+
+    @PostMapping("/status")
+    public ResponseEntity<String> updateUnitStatus(@RequestParam String idUnidad, @RequestParam String status) {
+        // Internal/Simulator endpoint, no email required for now
+        String result = unitService.changeUnitStatus(idUnidad, status);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok("Status updated to " + status);
+    }
 }

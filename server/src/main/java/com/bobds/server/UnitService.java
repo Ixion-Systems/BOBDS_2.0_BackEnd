@@ -384,6 +384,47 @@ public class UnitService {
         }
     }
 
+    @Autowired
+    private SseService sseService;
+
+    public String changeUnitStatus(String unitId, String status) {
+        lock.writeLock().lock();
+        try {
+            List<Unit> allUnits = loadUnits();
+            boolean found = false;
+            for (Unit u : allUnits) {
+                if (u.getUnitId() != null && u.getUnitId().equals(unitId)) {
+                    u.setStatus(status);
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                saveUnits(allUnits);
+                notifyUsersAboutUnitUpdate(unitId);
+                return "OK";
+            }
+            return "Error: Unit ID not found";
+        } catch (Exception e) {
+            return "Error interno: " + e.getMessage();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private void notifyUsersAboutUnitUpdate(String unitId) {
+        try {
+            List<UserUnit> arr = loadUserUnits();
+            for (UserUnit uu : arr) {
+                if (uu.getUnitId() != null && uu.getUnitId().equals(unitId)) {
+                    sseService.sendEventToEmail(uu.getEmail(), "unit_update", unitId);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error notifying unit updates: " + e.getMessage());
+        }
+    }
+
     private List<UserUnit> loadUserUnits() throws IOException {
         File file = new File(userUnitsFile);
         if (!file.exists() || file.length() == 0) return new ArrayList<>();
