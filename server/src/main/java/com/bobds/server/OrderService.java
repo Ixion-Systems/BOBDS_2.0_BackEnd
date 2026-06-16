@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.Semaphore;
 
 @Service
 /* servicio logico de ordenes */
@@ -18,16 +18,59 @@ public class OrderService {
     private final String ordersFile = "../data/ordenes.json";
     private final String orderUnitFile = "../data/ordenUnidad.json";
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Semaphore wrt = new Semaphore(1);
+    private final Semaphore mutex = new Semaphore(1);
+    private int readCount = 0;
+
+    public void acquireRead() {
+        try {
+            mutex.acquire();
+            readCount++;
+            if (readCount == 1) wrt.acquire();
+            mutex.release();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Operacion interrumpida", e);
+        }
+    }
+
+    public void releaseRead() {
+        try {
+            mutex.acquire();
+            readCount--;
+            if (readCount == 0) wrt.release();
+            mutex.release();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public void acquireWrite() {
+        try {
+            wrt.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Operacion interrumpida", e);
+        }
+    }
+
+    public void releaseWrite() {
+        wrt.release();
+    }
 
     @Autowired
     private RobotClient robotClient;
 
+
+
     @Autowired
     private SseService sseService;
 
+    @Autowired
+    private LogService logService;
+
     /* alta y emision de ordenes */
-    public String registerOrder(RegisterOrderDTO data) {
+    public String registerOrder(RegisterOrderDTO data, String email) {
         if (data.getUnitId() == null || data.getUnitId().trim().isEmpty()) {
             return "Error: Unit ID is required.";
         }
@@ -44,7 +87,7 @@ public class OrderService {
             return "Error: Notes cannot exceed 200 characters.";
         }
 
-        lock.writeLock().lock();
+        acquireWrite();
         boolean success = false;
         int assignedId = -1;
         try {
@@ -61,9 +104,7 @@ public class OrderService {
             Order newOrder = new Order();
             newOrder.setOrderId(assignedId);
             newOrder.setCommand(data.getCommand());
-            newOrder.setNotes(data.getNotes() != null ? data.getNotes() : "");
             newOrder.setStatus("En Cola");
-            newOrder.setCreatedAtMs(System.currentTimeMillis());
 
             allOrders.add(newOrder);
             saveOrders(allOrders);
@@ -80,11 +121,12 @@ public class OrderService {
         } catch (IOException e) {
             return "Internal error saving order: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
 
         if (success) {
             notifyUsersAboutOrderUpdate(data.getUnitId());
+            try { logService.registerLog(email, 1, "Orden registrada: " + assignedId, "Orden", String.valueOf(assignedId)); } catch (Exception ignore) {}
             try {
                 robotClient.enviarOrden(data.getUnitId(), assignedId, data.getCommand());
             } catch (Exception e) {
@@ -98,7 +140,7 @@ public class OrderService {
 
     /* actualizacion de estado */
     public String changeOrderStatusById(int orderId, String newStatus) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<Order> orders = loadOrdersInternal();
             boolean found = false;
@@ -122,24 +164,38 @@ public class OrderService {
                 notifyUsersAboutOrderUpdate(unitId);
             }
 
+            try { logService.registerLog("SYSTEM", 2, "Estado de orden modificado a " + newStatus + ": " + orderId, "Orden", String.valueOf(orderId)); } catch (Exception ignore) {}
+
             return "OK";
         } catch (IOException e) {
             return "Internal error changing order status: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* consulta de ordenes publicas */
-    public List<Order> loadOrders() {
-        lock.readLock().lock();
+    public List<Order> getAllOrders(String email) {
+        acquireRead();
         try {
             return loadOrdersInternal();
         } catch (IOException e) {
-            System.err.println("Error reading orders file: " + e.getMessage());
+            System.err.println("Error fetching all orders: " + e.getMessage());
             return new ArrayList<>();
         } finally {
-            lock.readLock().unlock();
+            releaseRead();
+            try { logService.registerLog(email, 4, "Consulta global de ordenes", "Orden", null); } catch (Exception ignore) {}
+        }
+    }
+
+    public List<Order> getSystemOrders() {
+        acquireRead();
+        try {
+            return loadOrdersInternal();
+        } catch (IOException e) {
+            return new ArrayList<>();
+        } finally {
+            releaseRead();
         }
     }
 
@@ -153,7 +209,7 @@ public class OrderService {
 
     /* eliminacion en cascada */
     public void deleteOrdersByUnit(String unitId) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<OrderUnit> links = loadOrderUnits();
             List<Integer> ordersToDelete = links.stream()
@@ -172,13 +228,13 @@ public class OrderService {
         } catch (IOException e) {
             System.err.println("Error cascading delete on orders: " + e.getMessage());
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* consultas por unidad */
-    public List<Order> getOrdersByUnit(String unitId) {
-        lock.readLock().lock();
+    public List<Order> getOrdersByUnit(String unitId, String email) {
+        acquireRead();
         try {
             List<OrderUnit> links = loadOrderUnits();
             List<Integer> ids = links.stream()
@@ -201,13 +257,25 @@ public class OrderService {
             System.err.println("Error fetching orders by unit: " + e.getMessage());
             return new ArrayList<>();
         } finally {
-            lock.readLock().unlock();
+            releaseRead();
+            try { logService.registerLog(email, 4, "Consulta ordenes de unidad: " + unitId, "Unidad", unitId); } catch (Exception ignore) {}
+        }
+    }
+
+    public Order getOrderById(int orderId) {
+        acquireRead();
+        try {
+            return loadOrdersInternal().stream().filter(o -> o.getOrderId() == orderId).findFirst().orElse(null);
+        } catch (IOException e) {
+            return null;
+        } finally {
+            releaseRead();
         }
     }
 
     /* eliminacion individual */
-    public String deleteOrder(int orderId) {
-        lock.writeLock().lock();
+    public String deleteOrder(int orderId, String email) {
+        acquireWrite();
         try {
             List<Order> orders = loadOrdersInternal();
             boolean removed = orders.removeIf(o -> o.getOrderId() == orderId);
@@ -224,11 +292,36 @@ public class OrderService {
             if (!removed && !removedLink) {
                 return "Error: Order not found.";
             }
+            try { logService.registerLog(email, 5, "Orden eliminada: " + orderId, "Orden", String.valueOf(orderId)); } catch (Exception ignore) {}
             return "OK";
         } catch (IOException e) {
             return "Internal error deleting order: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
+        }
+    }
+
+    public String forceDeleteOrder(int orderId, String adminEmail) {
+        acquireWrite();
+        try {
+            List<Order> orders = loadOrdersInternal();
+            boolean removed = orders.removeIf(o -> o.getOrderId() == orderId);
+
+            List<OrderUnit> links = loadOrderUnits();
+            boolean removedLink = links.removeIf(l -> l.getOrderId() == orderId);
+
+            saveOrders(orders);
+            saveOrderUnits(links);
+
+            if (!removed && !removedLink) {
+                return "Error: Order not found.";
+            }
+            try { logService.registerLog(adminEmail, 5, "Orden eliminada por admin: " + orderId, "Orden", String.valueOf(orderId)); } catch (Exception ignore) {}
+            return "OK";
+        } catch (IOException e) {
+            return "Internal error force deleting order: " + e.getMessage();
+        } finally {
+            releaseWrite();
         }
     }
 

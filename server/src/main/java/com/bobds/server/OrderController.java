@@ -29,7 +29,7 @@ public class OrderController {
         if (!isUserAuthorizedForUnit(email, data.getUnitId())) {
             return ResponseEntity.status(403).body("Error: No autorizado para esta unidad");
         }
-        String result = orderService.registerOrder(data);
+        String result = orderService.registerOrder(data, email);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
         }
@@ -54,7 +54,7 @@ public class OrderController {
         List<String> authorizedUnits = unitService.getUnitsByUser(email).stream()
             .map(UnitListDTO::getUnitId).toList();
 
-        List<Order> orders = orderService.loadOrders().stream()
+        List<Order> orders = orderService.getAllOrders(email).stream()
 
             .filter(o -> {
 
@@ -64,8 +64,8 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<Order> getOrderById(@PathVariable int orderId) {
-        List<Order> orders = orderService.loadOrders();
+    public ResponseEntity<Order> getOrderById(@PathVariable int orderId, @RequestAttribute("authenticatedEmail") String email) {
+        List<Order> orders = orderService.getAllOrders(email);
         return orders.stream()
             .filter(o -> o.getOrderId() == orderId)
             .findFirst()
@@ -79,7 +79,7 @@ public class OrderController {
         if (!isUserAuthorizedForUnit(email, unitId)) {
             return ResponseEntity.status(403).build();
         }
-        List<Order> orders = orderService.getOrdersByUnit(unitId);
+        List<Order> orders = orderService.getOrdersByUnit(unitId, email);
         return ResponseEntity.ok(orders);
     }
 
@@ -87,7 +87,7 @@ public class OrderController {
     @DeleteMapping("/{orderId}")
     public ResponseEntity<String> deleteOrder(@PathVariable int orderId, @RequestAttribute("authenticatedEmail") String email) {
 
-        String result = orderService.deleteOrder(orderId);
+        String result = orderService.deleteOrder(orderId, email);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
         }

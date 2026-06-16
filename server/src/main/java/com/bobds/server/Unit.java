@@ -28,6 +28,10 @@ public class Unit {
     @JsonProperty("CodUsado")
     private boolean codeUsed = false;
 
+    @JsonProperty("CreatedAtMs")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Long createdAtMs;
+
     /* constructores */
     public Unit() {}
 
@@ -52,4 +56,7 @@ public class Unit {
 
     public boolean isCodeUsed() { return codeUsed; }
     public void setCodeUsed(boolean codeUsed) { this.codeUsed = codeUsed; }
+
+    public Long getCreatedAtMs() { return createdAtMs; }
+    public void setCreatedAtMs(Long createdAtMs) { this.createdAtMs = createdAtMs; }
 }
