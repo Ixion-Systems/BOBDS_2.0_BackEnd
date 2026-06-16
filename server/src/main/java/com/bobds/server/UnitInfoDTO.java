@@ -17,15 +17,18 @@ public class UnitInfoDTO {
     private String linkCode;
     @JsonProperty("estadoCodigo")
     private String codeStatus;
+    @JsonProperty("createdAtMs")
+    private Long createdAtMs;
 
     /* constructores */
-    public UnitInfoDTO(String name, String unitId, String description, String owner, String linkCode, String codeStatus) {
+    public UnitInfoDTO(String name, String unitId, String description, String owner, String linkCode, String codeStatus, Long createdAtMs) {
         this.name = name;
         this.unitId = unitId;
         this.description = description;
         this.owner = owner;
         this.linkCode = linkCode;
         this.codeStatus = codeStatus;
+        this.createdAtMs = createdAtMs;
     }
 
     /* metodos de acceso */
@@ -46,4 +49,7 @@ public class UnitInfoDTO {
 
     public String getCodeStatus() { return codeStatus; }
     public void setCodeStatus(String codeStatus) { this.codeStatus = codeStatus; }
+
+    public Long getCreatedAtMs() { return createdAtMs; }
+    public void setCreatedAtMs(Long createdAtMs) { this.createdAtMs = createdAtMs; }
 }

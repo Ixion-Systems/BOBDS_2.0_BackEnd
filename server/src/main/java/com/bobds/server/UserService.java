@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.security.SecureRandom;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.Semaphore;
 
 @Service
 /* servicio logico de usuarios */
@@ -22,10 +22,51 @@ public class UserService {
     /* dependencias y rutas locales */
     private final String dataFile;
     private final ObjectMapper objectMapper;
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Semaphore wrt = new Semaphore(1);
+    private final Semaphore mutex = new Semaphore(1);
+    private int readCount = 0;
+
+    public void acquireRead() {
+        try {
+            mutex.acquire();
+            readCount++;
+            if (readCount == 1) wrt.acquire();
+            mutex.release();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Operacion interrumpida", e);
+        }
+    }
+
+    public void releaseRead() {
+        try {
+            mutex.acquire();
+            readCount--;
+            if (readCount == 0) wrt.release();
+            mutex.release();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public void acquireWrite() {
+        try {
+            wrt.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Operacion interrumpida", e);
+        }
+    }
+
+    public void releaseWrite() {
+        wrt.release();
+    }
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private LogService logService;
 
     /* constructores e inicializacion */
     public UserService() {
@@ -62,7 +103,7 @@ public class UserService {
             return "Validation Error:\n" + validationResult;
         }
 
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
 
@@ -97,17 +138,18 @@ public class UserService {
                 return "Critical error sending email. Details: " + e.getMessage();
             }
 
+            try { logService.registerLog(email, 1, "Usuario registrado exitosamente", "Usuario", String.valueOf(nextId)); } catch (Exception ignore) {}
             return "User '" + name + "' registered. Check your email to verify the account.";
         } catch (IOException e) {
             return "Error saving data: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* validacion de correo */
     public String verifyEmail(String email, String token) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
             for (User u : users) {
@@ -143,13 +185,13 @@ public class UserService {
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* reenvio de codigo */
     public String resendCode(String email) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
             for (User u : users) {
@@ -174,7 +216,7 @@ public class UserService {
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
@@ -183,7 +225,7 @@ public class UserService {
         if (email == null || email.isEmpty() || password == null || password.isEmpty())
             return "Error: Email and password are required.";
 
-        lock.readLock().lock();
+        acquireRead();
         try {
             List<User> users = loadUsers();
             for (User user : users) {
@@ -194,6 +236,7 @@ public class UserService {
                         if (!user.isVerified()) {
                             return "Error: You must verify your email before logging in.";
                         }
+                        try { logService.registerLog(email, 4, "Inicio de sesión local", "Usuario", String.valueOf(user.getUserId())); } catch (Exception ignore) {}
                         return "Login successful. Welcome, " + user.getUsername() + "!";
                     }
                 }
@@ -202,18 +245,20 @@ public class UserService {
         } catch (IOException e) {
             return "Error accessing data: " + e.getMessage();
         } finally {
-            lock.readLock().unlock();
+            releaseRead();
         }
     }
 
     /* registro y login por google */
     public String signUpGoogle(String name, String email) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
             for (User u : users) {
-                if (email.equals(u.getEmail()))
+                if (email.equals(u.getEmail())) {
+                    try { logService.registerLog(email, 4, "Inicio de sesión por Google (existente)", "Usuario", String.valueOf(u.getUserId())); } catch (Exception ignore) {}
                     return "Welcome back, " + u.getUsername() + "!";
+                }
             }
 
             int maxId = 0;
@@ -229,17 +274,19 @@ public class UserService {
             newUser.setVerified(true);
             users.add(newUser);
             saveUsers(users);
+            saveUsers(users);
+            try { logService.registerLog(email, 1, "Registro y logueo por Google (nuevo)", "Usuario", String.valueOf(nextId)); } catch (Exception ignore) {}
             return "User registered with Google: " + name;
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* solicitud de recuperacion */
     public String requestPasswordReset(String email) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
             for (User u : users) {
@@ -261,13 +308,13 @@ public class UserService {
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* validacion de token temporal */
     public String verifyResetCode(String email, String token) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
             for (User u : users) {
@@ -298,13 +345,13 @@ public class UserService {
         } catch (IOException e) {
             return "Error: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
     /* cambio definitivo de clave */
     public String changePassword(String email, String token, String newPassword) {
-        lock.writeLock().lock();
+        acquireWrite();
         try {
             List<User> users = loadUsers();
             for (User u : users) {
@@ -326,14 +373,11 @@ public class UserService {
         } catch (IOException e) {
             return "Error accessing data: " + e.getMessage();
         } finally {
-            lock.writeLock().unlock();
+            releaseWrite();
         }
     }
 
-    /* getters concurrentes */
-    public ReentrantReadWriteLock getLock() {
-        return lock;
-    }
+    /* getters concurrentes eliminados */
 
     /* persistencia de datos json */
     private List<User> loadUsers() throws IOException {
@@ -350,5 +394,46 @@ public class UserService {
     private void saveUsers(List<User> users) throws IOException {
         File file = new File(dataFile);
         objectMapper.writeValue(file, users);
+    }
+
+    public List<User> getAllUsers() {
+        acquireRead();
+        try {
+            return loadUsers();
+        } catch (IOException e) {
+            return new ArrayList<>();
+        } finally {
+            releaseRead();
+        }
+    }
+
+    public User getUserById(int userId) {
+        acquireRead();
+        try {
+            return loadUsers().stream().filter(u -> u.getUserId() == userId).findFirst().orElse(null);
+        } catch (IOException e) {
+            return null;
+        } finally {
+            releaseRead();
+        }
+    }
+
+    public String deleteUser(int userId, String adminEmail) {
+        acquireWrite();
+        try {
+            List<User> users = loadUsers();
+            boolean removed = users.removeIf(u -> u.getUserId() == userId);
+            if (removed) {
+                saveUsers(users);
+                // Ideally also delete user's units and orders here if needed, or cascading
+                try { logService.registerLog(adminEmail, 5, "Usuario eliminado por admin: " + userId, "Usuario", String.valueOf(userId)); } catch (Exception ignore) {}
+                return "OK";
+            }
+            return "Error: User not found.";
+        } catch (IOException e) {
+            return "Internal error deleting user: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
     }
 }

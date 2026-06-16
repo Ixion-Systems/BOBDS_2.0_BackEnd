@@ -34,6 +34,9 @@ public class User {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer verificationAttempts = 0;
 
+    @JsonProperty("isAdmin")
+    private boolean isAdmin = false;
+
     /* constructores */
     public User() {
     }
@@ -86,4 +89,7 @@ public class User {
 
     public Integer getVerificationAttempts() { return verificationAttempts; }
     public void setVerificationAttempts(Integer verificationAttempts) { this.verificationAttempts = verificationAttempts; }
+
+    public boolean isAdmin() { return isAdmin; }
+    public void setAdmin(boolean admin) { isAdmin = admin; }
 }

@@ -35,8 +35,8 @@ public class UnitController {
 
     /* eliminacion de unidades */
     @DeleteMapping("/DeleteUnit/{idUnidad}")
-    public ResponseEntity<String> deleteUnit(@PathVariable String idUnidad) {
-        String result = unitService.deleteUnit(idUnidad);
+    public ResponseEntity<String> deleteUnit(@PathVariable String idUnidad, @RequestAttribute("authenticatedEmail") String email) {
+        String result = unitService.deleteUnit(idUnidad, email);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
         }
@@ -45,8 +45,8 @@ public class UnitController {
 
     /* consulta de informacion especifica */
     @GetMapping("/info/{idUnidad}")
-    public ResponseEntity<UnitInfoDTO> getUnitInfo(@PathVariable String idUnidad) {
-        UnitInfoDTO info = unitService.getUnitInfo(idUnidad);
+    public ResponseEntity<UnitInfoDTO> getUnitInfo(@PathVariable String idUnidad, @RequestAttribute("authenticatedEmail") String email) {
+        UnitInfoDTO info = unitService.getUnitInfo(idUnidad, email);
         if (info != null) {
             return ResponseEntity.ok(info);
         }
@@ -95,10 +95,10 @@ public class UnitController {
 
     /* modificacion de unidades */
     @PutMapping("/update/{idUnidad}")
-    public ResponseEntity<String> updateUnit(@PathVariable String idUnidad, @RequestBody java.util.Map<String, String> payload) {
+    public ResponseEntity<String> updateUnit(@PathVariable String idUnidad, @RequestBody java.util.Map<String, String> payload, @RequestAttribute("authenticatedEmail") String email) {
         String nombre = payload.get("nombre");
         String descripcion = payload.get("descripcion");
-        String result = unitService.modifyUnit(idUnidad, nombre, descripcion);
+        String result = unitService.modifyUnit(idUnidad, nombre, descripcion, email);
         if (result.startsWith("Error")) {
             return ResponseEntity.badRequest().body(result);
         }
