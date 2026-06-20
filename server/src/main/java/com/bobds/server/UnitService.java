@@ -20,10 +20,11 @@ public class UnitService {
     /* dependencias y rutas locales */
     private final String unitsFile = "../data/unidades.json";
     private final String userUnitsFile = "../data/usuarioUnidades.json";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
     private final Semaphore wrt = new Semaphore(1);
     private final Semaphore mutex = new Semaphore(1);
     private int readCount = 0;
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> lastUnitsQueryLog = new java.util.concurrent.ConcurrentHashMap<>();
 
     public void acquireRead() {
         try {
@@ -104,7 +105,14 @@ public class UnitService {
             return new ArrayList<>();
         } finally {
             releaseRead();
-            try { logService.registerLog(userEmail, 4, "Consulta de lista de unidades", "Unidad", null); } catch (Exception ignore) {}
+            if (userEmail != null) {
+                long now = System.currentTimeMillis();
+                long last = lastUnitsQueryLog.getOrDefault(userEmail + "_byUser", 0L);
+                if (now - last > 3000) {
+                    lastUnitsQueryLog.put(userEmail + "_byUser", now);
+                    try { logService.registerLog(userEmail, 4, "Consulta de lista de unidades", "Unidad", null); } catch (Exception ignore) {}
+                }
+            }
         }
     }
 
@@ -127,7 +135,14 @@ public class UnitService {
             return new ArrayList<>();
         } finally {
             releaseRead();
-            try { logService.registerLog(userEmail, 4, "Consulta de lista de unidades", "Unidad", null); } catch (Exception ignore) {}
+            if (userEmail != null) {
+                long now = System.currentTimeMillis();
+                long last = lastUnitsQueryLog.getOrDefault(userEmail + "_all", 0L);
+                if (now - last > 3000) {
+                    lastUnitsQueryLog.put(userEmail + "_all", now);
+                    try { logService.registerLog(userEmail, 4, "Consulta de lista de unidades", "Unidad", null); } catch (Exception ignore) {}
+                }
+            }
         }
     }
 
@@ -375,6 +390,8 @@ public class UnitService {
                 return "Error: Unit not found.";
             }
 
+            orderService.deleteOrdersByUnit(unitId);
+            
             saveUnits(allUnits);
             saveUserUnits(allLinks);
 

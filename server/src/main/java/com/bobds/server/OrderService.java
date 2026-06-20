@@ -17,7 +17,7 @@ public class OrderService {
     /* dependencias y rutas locales */
     private final String ordersFile = "../data/ordenes.json";
     private final String orderUnitFile = "../data/ordenUnidad.json";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
     private final Semaphore wrt = new Semaphore(1);
     private final Semaphore mutex = new Semaphore(1);
     private int readCount = 0;
@@ -105,6 +105,10 @@ public class OrderService {
             newOrder.setOrderId(assignedId);
             newOrder.setCommand(data.getCommand());
             newOrder.setStatus("En Cola");
+            newOrder.setNotas(data.getNotes() != null ? data.getNotes() : "");
+            newOrder.setFechaHora(new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()));
+            newOrder.setCreatedAtMs(System.currentTimeMillis());
+            newOrder.setUserEmail(email);
 
             allOrders.add(newOrder);
             saveOrders(allOrders);
@@ -148,6 +152,12 @@ public class OrderService {
             for (Order o : orders) {
                 if (o.getOrderId() == orderId) {
                     o.setStatus(newStatus);
+                    if ("FINALIZADA".equalsIgnoreCase(newStatus)) {
+                        o.setFinishedAtMs(System.currentTimeMillis());
+                        if (o.getCreatedAtMs() != null) {
+                            o.setDurationMs(o.getFinishedAtMs() - o.getCreatedAtMs());
+                        }
+                    }
                     found = true;
                     break;
                 }
@@ -169,6 +179,51 @@ public class OrderService {
             return "OK";
         } catch (IOException e) {
             return "Internal error changing order status: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
+    }
+
+    public String cancelOrder(int orderId, String email) {
+        acquireWrite();
+        try {
+            List<Order> orders = loadOrdersInternal();
+            boolean found = false;
+
+            for (Order o : orders) {
+                if (o.getOrderId() == orderId) {
+                    if ("En Cola".equalsIgnoreCase(o.getStatus()) || "En Curso".equalsIgnoreCase(o.getStatus())) {
+                        o.setStatus("CANCELADA");
+                        o.setFinishedAtMs(System.currentTimeMillis());
+                        if (o.getCreatedAtMs() != null) {
+                            o.setDurationMs(o.getFinishedAtMs() - o.getCreatedAtMs());
+                        }
+                        found = true;
+                    } else {
+                        return "Error: Order cannot be cancelled in state " + o.getStatus();
+                    }
+                    break;
+                }
+            }
+
+            if (!found) {
+                return "Error: No cancelable order found with ID " + orderId;
+            }
+
+            saveOrders(orders);
+
+            String unitId = getUnitIdByOrderId(orderId);
+            if (unitId != null) {
+                notifyUsersAboutOrderUpdate(unitId);
+            }
+
+            robotClient.cancelOrder(orderId);
+
+            try { logService.registerLog(email, 2, "Orden " + orderId + " cancelada por usuario", "Orden", String.valueOf(orderId)); } catch (Exception ignore) {}
+
+            return "OK";
+        } catch (IOException e) {
+            return "Internal error cancelling order: " + e.getMessage();
         } finally {
             releaseWrite();
         }
@@ -245,13 +300,6 @@ public class OrderService {
             List<Order> all = loadOrdersInternal();
             return all.stream()
                 .filter(o -> ids.contains(o.getOrderId()))
-                .map(o -> {
-                    Order mapped = new Order();
-                    mapped.setOrderId(o.getOrderId());
-                    mapped.setCommand(o.getCommand());
-                    mapped.setStatus(o.getStatus());
-                    return mapped;
-                })
                 .toList();
         } catch (IOException e) {
             System.err.println("Error fetching orders by unit: " + e.getMessage());

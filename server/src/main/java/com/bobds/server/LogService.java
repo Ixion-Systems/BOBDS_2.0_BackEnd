@@ -19,7 +19,7 @@ public class LogService {
     private final String logGravedadFile = "../data/logsgravedad.json";
     private final String logUsuarioFile = "../data/logsusuario.json";
     
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
     private final Semaphore wrt = new Semaphore(1); // Mutex para escritura concurrente
 
     @Autowired
@@ -38,8 +38,22 @@ public class LogService {
         return false;
     }
 
+    private List<String> getAllAdminEmails() {
+        List<String> admins = new ArrayList<>();
+        try {
+            File file = new File("../data/usuario.json");
+            if (file.exists()) {
+                User[] users = objectMapper.readValue(file, User[].class);
+                for (User u : users) {
+                    if (u.isAdmin()) admins.add(u.getEmail());
+                }
+            }
+        } catch(Exception e) {}
+        return admins;
+    }
+
     public void registerLog(String email, int idGravedad, String descripcion, String tipoEntidad, String entidadId) {
-        if ("ADMIN_OVERRIDE".equals(email) || isAdminUser(email)) return;
+        if ("ADMIN_OVERRIDE".equals(email)) return;
 
         try {
             wrt.acquire();
@@ -76,7 +90,9 @@ public class LogService {
                 String userEmail = email != null && !email.trim().isEmpty() ? email : "SYSTEM";
                 String sseMessage = newLog.getFechaHora() + " > " + userEmail + " > " + descripcion;
                 if (sseService != null) {
-                    sseService.sendEventToEmail("ADMIN_CHANNEL", "admin_log", sseMessage);
+                    for (String adminEmail : getAllAdminEmails()) {
+                        sseService.sendEventToEmail(adminEmail, "admin_log", sseMessage);
+                    }
                 }
 
             } finally {

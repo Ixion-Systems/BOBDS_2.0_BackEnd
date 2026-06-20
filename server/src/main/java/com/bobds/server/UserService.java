@@ -71,7 +71,7 @@ public class UserService {
     /* constructores e inicializacion */
     public UserService() {
         this.dataFile = "../data/usuario.json";
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper().enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         File dataDir = new File("../data");
         if (!dataDir.exists()) {

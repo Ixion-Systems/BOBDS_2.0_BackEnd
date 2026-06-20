@@ -37,4 +37,22 @@ public class RobotClient {
             System.err.println("Error al contactar al simulador: " + e.getMessage());
         }
     }
+
+    public void cancelOrder(int idOrden) {
+        try {
+            String body = "idOrden=" + idOrden;
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:7777/robot/cancel"))
+                .timeout(Duration.ofSeconds(5))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Solicitud de cancelación enviada al simulador (ID: " + idOrden + ")");
+        } catch (Exception e) {
+            System.err.println("Error al contactar al simulador para cancelar: " + e.getMessage());
+        }
+    }
 }
