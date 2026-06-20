@@ -116,4 +116,13 @@ public class AdminController {
         }
         return ResponseEntity.badRequest().body(Map.of("error", result));
     }
+
+    @PostMapping("/orders/{orderId}/cancel")
+    public ResponseEntity<Map<String, String>> cancelOrder(@PathVariable int orderId, @RequestParam String adminEmail) {
+        String result = orderService.cancelOrder(orderId, adminEmail);
+        if ("OK".equals(result)) {
+            return ResponseEntity.ok(Map.of("message", "Orden cancelada"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", result));
+    }
 }

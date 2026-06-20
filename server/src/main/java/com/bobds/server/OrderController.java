@@ -93,4 +93,14 @@ public class OrderController {
         }
         return ResponseEntity.ok("Order deleted successfully");
     }
+
+    /* cancelacion de ordenes en curso */
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<String> cancelOrder(@PathVariable int orderId, @RequestAttribute("authenticatedEmail") String email) {
+        String result = orderService.cancelOrder(orderId, email);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok("Order cancelled successfully");
+    }
 }
