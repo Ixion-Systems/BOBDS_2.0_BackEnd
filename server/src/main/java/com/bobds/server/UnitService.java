@@ -191,6 +191,7 @@ public class UnitService {
             newLink.setUnitId(newUnitId);
             newLink.setEmail(datos.getUserEmail());
             newLink.setRole("Propietario");
+            newLink.setVinculadoEnMs(System.currentTimeMillis());
             links.add(newLink);
             saveUserUnits(links);
 
@@ -500,6 +501,7 @@ public class UnitService {
             newLink.setUnitId(u.getUnitId());
             newLink.setEmail(email);
             newLink.setRole("Invitado");
+            newLink.setVinculadoEnMs(System.currentTimeMillis());
             links.add(newLink);
             saveUserUnits(links);
 
@@ -602,5 +604,107 @@ public class UnitService {
     private void saveUserUnits(List<UserUnit> links) throws IOException {
         File file = new File(userUnitsFile);
         objectMapper.writeValue(file, links);
+    }
+
+    /* gestion de permisos y usuarios vinculados */
+    public List<java.util.Map<String, Object>> getUsersByUnit(String unitId, String requesterEmail) {
+        acquireRead();
+        try {
+            List<UserUnit> links = loadUserUnits();
+            boolean isLinked = links.stream().anyMatch(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(requesterEmail));
+            if (!isLinked) return new ArrayList<>();
+
+            List<java.util.Map<String, Object>> result = new ArrayList<>();
+            userService.acquireRead();
+            try {
+                File userFile = new File("../data/usuario.json");
+                User[] usersArray = userFile.exists() ? objectMapper.readValue(userFile, User[].class) : new User[0];
+                for (UserUnit uu : links) {
+                    if (uu.getUnitId().equals(unitId)) {
+                        java.util.Map<String, Object> map = new java.util.HashMap<>();
+                        map.put("email", uu.getEmail());
+                        map.put("role", uu.getRole());
+                        map.put("vinculadoEnMs", uu.getVinculadoEnMs());
+                        
+                        String name = uu.getEmail();
+                        for (User u : usersArray) {
+                            if (u.getEmail().equals(uu.getEmail())) {
+                                name = u.getUsername();
+                                break;
+                            }
+                        }
+                        map.put("name", name);
+                        result.add(map);
+                    }
+                }
+            } finally {
+                userService.releaseRead();
+            }
+            return result;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        } finally {
+            releaseRead();
+        }
+    }
+
+    public String changeUserRole(String unitId, String targetEmail, String newRole, String requesterEmail) {
+        acquireWrite();
+        try {
+            if (targetEmail.equals(requesterEmail)) {
+                return "Error: No puedes modificar tu propio rol.";
+            }
+            List<UserUnit> links = loadUserUnits();
+            
+            boolean isPropietario = links.stream().anyMatch(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(requesterEmail) && "Propietario".equals(uu.getRole()));
+            if (!isPropietario) return "Error: Solo el Propietario puede modificar roles.";
+
+            Optional<UserUnit> targetOpt = links.stream().filter(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(targetEmail)).findFirst();
+            if (!targetOpt.isPresent()) return "Error: Usuario no encontrado en esta unidad.";
+            
+            if ("Propietario".equals(targetOpt.get().getRole())) {
+                return "Error: No se puede modificar el rol de un Propietario.";
+            }
+
+            targetOpt.get().setRole(newRole);
+            saveUserUnits(links);
+            notifyUsersAboutUnitUpdate(unitId);
+            try { logService.registerLog(requesterEmail, 2, "Cambio de rol a " + newRole + " para " + targetEmail, "Unidad", unitId); } catch (Exception ignore) {}
+            return "OK";
+        } catch (Exception e) {
+            return "Error interno: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
+    }
+
+    public String unlinkUserFromUnitAdmin(String unitId, String targetEmail, String requesterEmail) {
+        acquireWrite();
+        try {
+            if (targetEmail.equals(requesterEmail)) {
+                return "Error: Utiliza la funcion de desvincularte a ti mismo.";
+            }
+            List<UserUnit> links = loadUserUnits();
+            
+            boolean isPropietario = links.stream().anyMatch(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(requesterEmail) && "Propietario".equals(uu.getRole()));
+            if (!isPropietario) return "Error: Solo el Propietario puede desvincular usuarios.";
+
+            Optional<UserUnit> targetOpt = links.stream().filter(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(targetEmail)).findFirst();
+            if (!targetOpt.isPresent()) return "Error: Usuario no encontrado en esta unidad.";
+            
+            if ("Propietario".equals(targetOpt.get().getRole())) {
+                return "Error: No se puede desvincular a un Propietario.";
+            }
+
+            links.removeIf(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(targetEmail));
+            saveUserUnits(links);
+            notifyUsersAboutUnitUpdate(unitId);
+            try { logService.registerLog(requesterEmail, 4, "Usuario " + targetEmail + " desvinculado", "Unidad", unitId); } catch (Exception ignore) {}
+            return "OK";
+        } catch (Exception e) {
+            return "Error interno: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
     }
 }

@@ -14,6 +14,9 @@ public class UserUnit {
     @JsonProperty("Rol")
     private String role;
 
+    @JsonProperty("VinculadoEnMs")
+    private Long vinculadoEnMs;
+
     /* constructores */
     public UserUnit() {}
 
@@ -26,4 +29,7 @@ public class UserUnit {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Long getVinculadoEnMs() { return vinculadoEnMs; }
+    public void setVinculadoEnMs(Long vinculadoEnMs) { this.vinculadoEnMs = vinculadoEnMs; }
 }
