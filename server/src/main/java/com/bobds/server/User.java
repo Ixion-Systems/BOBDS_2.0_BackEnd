@@ -2,8 +2,10 @@ package com.bobds.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /* entidad de usuario */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User {
 
     /* atributos de la entidad */
@@ -34,8 +36,7 @@ public class User {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer verificationAttempts = 0;
 
-    @JsonProperty("isAdmin")
-    private boolean isAdmin = false;
+    private boolean admin = false;
 
     /* constructores */
     public User() {
@@ -90,6 +91,9 @@ public class User {
     public Integer getVerificationAttempts() { return verificationAttempts; }
     public void setVerificationAttempts(Integer verificationAttempts) { this.verificationAttempts = verificationAttempts; }
 
-    public boolean isAdmin() { return isAdmin; }
-    public void setAdmin(boolean admin) { isAdmin = admin; }
+    @JsonProperty("isAdmin")
+    public boolean isAdmin() { return admin; }
+    
+    @JsonProperty("isAdmin")
+    public void setAdmin(boolean admin) { this.admin = admin; }
 }

@@ -20,8 +20,9 @@ B.O.B.D.S. Server is the robust backend application powering the Base Operativa 
 * **RESTful API Architecture:** Clean, stateless API endpoints for seamless frontend integration.
 * **Server-Sent Events (SSE):** Real-time unidirectional streaming endpoints (`/api/stream`) for live updates on orders and unit statuses without polling.
 * **Role-Based Access Control (RBAC):** Hierarchical permissions (Propietario, Co-Propietario, Administrador, Operador, Invitado) regulating UI visibility and administrative actions.
+* **System Audit Logging:** Comprehensive Action-Log interceptor tracking access, creation, modifications, and command execution across the platform.
 * **Unit Linking via Secret Tokens:** Secure association of units to users utilizing expendable or persistent secret codes.
-* **Multi-Client Concurrency:** High-performance file access using `ReentrantReadWriteLock` to isolate writes without bottlenecking simultaneous reads.
+* **Multi-Client Concurrency:** High-performance file access using `ReentrantReadWriteLock` and `Semaphore` to isolate writes without bottlenecking simultaneous reads and ensuring atomic operations.
 * **File-based JSON Database:** Custom, lightweight JSON storage engines for users, units, and system logs.
 * **Operator Authentication:** Secure login and registration systems with token validation and SHA-256 password hashing.
 * **Chronological Order Traceability:** Orders sorted dynamically by timestamps with strict monotonic ID fallbacks.

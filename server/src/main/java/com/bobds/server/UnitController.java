@@ -115,4 +115,37 @@ public class UnitController {
         }
         return ResponseEntity.ok("Status updated to " + status);
     }
+
+    /* gestion de permisos y vinculaciones */
+    @GetMapping("/{idUnidad}/users")
+    public ResponseEntity<?> getUnitUsers(@PathVariable String idUnidad, @RequestAttribute("authenticatedEmail") String email) {
+        List<java.util.Map<String, Object>> users = unitService.getUsersByUnit(idUnidad, email);
+        return ResponseEntity.ok(users);
+    }
+
+    @PutMapping("/{idUnidad}/users/{targetEmail}/role")
+    public ResponseEntity<String> changeRole(
+            @PathVariable String idUnidad, 
+            @PathVariable String targetEmail, 
+            @RequestBody java.util.Map<String, String> payload, 
+            @RequestAttribute("authenticatedEmail") String email) {
+        String newRole = payload.get("role");
+        String result = unitService.changeUserRole(idUnidad, targetEmail, newRole, email);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok("Role updated successfully");
+    }
+
+    @DeleteMapping("/{idUnidad}/users/{targetEmail}")
+    public ResponseEntity<String> removeUser(
+            @PathVariable String idUnidad, 
+            @PathVariable String targetEmail, 
+            @RequestAttribute("authenticatedEmail") String email) {
+        String result = unitService.unlinkUserFromUnitAdmin(idUnidad, targetEmail, email);
+        if (result.startsWith("Error")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok("User removed successfully");
+    }
 }
