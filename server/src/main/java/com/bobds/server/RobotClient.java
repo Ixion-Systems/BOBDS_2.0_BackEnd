@@ -15,7 +15,9 @@ public class RobotClient {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
             .build();
-    private static final String ROBOT_URL = "http://localhost:7777/robot/ejecutar";
+    private static final String SIMULATOR_BASE_URL = System.getenv("SIMULATOR_URL") != null ? System.getenv("SIMULATOR_URL") : "http://localhost:7777";
+    private static final String ROBOT_URL = SIMULATOR_BASE_URL + "/robot/ejecutar";
+    private static final String CANCEL_URL = SIMULATOR_BASE_URL + "/robot/cancel";
 
     /* transmision de comandos por red */
     public void enviarOrden(String idUnidad, int idOrden, String orden) {
@@ -43,7 +45,7 @@ public class RobotClient {
             String body = "idOrden=" + idOrden;
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:7777/robot/cancel"))
+                .uri(URI.create(CANCEL_URL))
                 .timeout(Duration.ofSeconds(5))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
