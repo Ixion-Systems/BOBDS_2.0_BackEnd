@@ -77,3 +77,5 @@ Before running the application, ensure you have the following installed:
   * `RobotClient.java`: HTTP client responsible for transmitting orders to external robotic simulators.
 * `server/src/main/resources/`: Environment configuration (`application.properties`, `application-secret.properties`).
 * `data/`: Local persistent JSON file storage for rapid iteration and database simulation.
+## Deployment (Docker & .env)
+This component is fully containerized using Docker. All sensitive configuration (such as SMTP credentials and ports) is managed via a .env file located at server/.env (which is excluded via .gitignore to prevent secret leaks).

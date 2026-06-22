@@ -39,3 +39,5 @@ application-secret.properties
 ordenes.json
 unidades.json
 ordenes_unidades.json
+
+.env
