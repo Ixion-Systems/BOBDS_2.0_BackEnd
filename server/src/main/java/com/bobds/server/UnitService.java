@@ -507,6 +507,7 @@ public class UnitService {
 
             u.setCodeUsed(true);
             saveUnits(allUnits);
+            notifyUsersAboutUnitUpdate(u.getUnitId());
             try { logService.registerLog(email, 2, "Vinculacion a unidad: " + u.getUnitId(), "Unidad", u.getUnitId()); } catch (Exception ignore) {}
 
             return "OK";
@@ -531,6 +532,8 @@ public class UnitService {
 
             links.removeIf(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(email));
             saveUserUnits(links);
+            notifyUsersAboutUnitUpdate(unitId);
+            sseService.sendEventToEmail(email, "unit_update", unitId);
             return "OK";
         } catch (Exception e) {
             return "Error interno: " + e.getMessage();
@@ -699,6 +702,7 @@ public class UnitService {
             links.removeIf(uu -> uu.getUnitId().equals(unitId) && uu.getEmail().equals(targetEmail));
             saveUserUnits(links);
             notifyUsersAboutUnitUpdate(unitId);
+            sseService.sendEventToEmail(targetEmail, "unit_update", unitId);
             try { logService.registerLog(requesterEmail, 4, "Usuario " + targetEmail + " desvinculado", "Unidad", unitId); } catch (Exception ignore) {}
             return "OK";
         } catch (Exception e) {
