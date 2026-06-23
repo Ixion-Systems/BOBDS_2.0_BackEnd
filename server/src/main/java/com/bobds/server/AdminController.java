@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*") // Para desarrollo
+@CrossOrigin(origins = {"http://localhost:5173", "https://bobds.aguilucho.ar"}, allowCredentials = "true")
 public class AdminController {
 
     @Autowired
