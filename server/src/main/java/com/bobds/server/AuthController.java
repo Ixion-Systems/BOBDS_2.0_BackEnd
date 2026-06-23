@@ -38,7 +38,7 @@ public class AuthController {
 
     /* endpoints de inicio de sesion */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password, jakarta.servlet.http.HttpServletResponse response){
+    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password, @RequestParam(defaultValue = "false") boolean keepSession, jakarta.servlet.http.HttpServletResponse response){
         String result = userService.login(email, password);
         if(result.startsWith("Error")){
             return ResponseEntity.badRequest().body(result);
@@ -48,7 +48,11 @@ public class AuthController {
         jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("jwt", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(86400); 
+        if (keepSession) {
+            cookie.setMaxAge(86400 * 30); // 30 days
+        } else {
+            cookie.setMaxAge(-1); // Session cookie
+        }
         response.addCookie(cookie);
 
         return ResponseEntity.ok(result);
