@@ -94,7 +94,8 @@ public class UnitService {
                             u.getName(),
                             u.getUnitId(),
                             u.getStatus(),
-                            uu.getRole()
+                            uu.getRole(),
+                            u.getDescription()
                         ));
                     }
                 }
@@ -126,7 +127,7 @@ public class UnitService {
                 .filter(u -> allLinks.stream().anyMatch(link -> link.getUnitId().equals(u.getUnitId()) && link.getEmail().equals(userEmail)))
                 .map(u -> {
                     String role = allLinks.stream().filter(l -> l.getUnitId().equals(u.getUnitId()) && l.getEmail().equals(userEmail)).findFirst().map(UserUnit::getRole).orElse("N/A");
-                    return new UnitListDTO(u.getName(), u.getUnitId(), u.getStatus(), role);
+                    return new UnitListDTO(u.getName(), u.getUnitId(), u.getStatus(), role, u.getDescription());
                 })
                 .toList();
 

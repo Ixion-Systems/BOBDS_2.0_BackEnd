@@ -13,13 +13,16 @@ public class UnitListDTO {
     private String status;
     @JsonProperty("rol")
     private String role;
+    @JsonProperty("descripcion")
+    private String description;
 
     /* constructores */
-    public UnitListDTO(String name, String unitId, String status, String role) {
+    public UnitListDTO(String name, String unitId, String status, String role, String description) {
         this.name = name;
         this.unitId = unitId;
         this.status = status;
         this.role = role;
+        this.description = description;
     }
 
     /* metodos de acceso */
@@ -34,4 +37,7 @@ public class UnitListDTO {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }
