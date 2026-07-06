@@ -39,6 +39,11 @@ public class AdminController {
         return sseService.createEmitter("ADMIN_CHANNEL");
     }
 
+    @GetMapping("/check")
+    public ResponseEntity<Map<String, Boolean>> checkAdminStatus(@RequestAttribute("authenticatedEmail") String email) {
+        return ResponseEntity.ok(Map.of("isAdmin", checkAdmin(email)));
+    }
+
     @GetMapping("/logs")
     public ResponseEntity<List<LogDetailDTO>> getAllLogs(@RequestAttribute("authenticatedEmail") String email) {
         if (!checkAdmin(email)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
