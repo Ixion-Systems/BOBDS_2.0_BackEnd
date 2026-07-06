@@ -407,10 +407,31 @@ public class UserService {
         }
     }
 
+    /* obtencion de usuario individual */
     public User getUserById(int userId) {
         acquireRead();
         try {
-            return loadUsers().stream().filter(u -> u.getUserId() == userId).findFirst().orElse(null);
+            List<User> users = loadUsers();
+            for (User u : users) {
+                if (u.getUserId() == userId) return u;
+            }
+            return null;
+        } catch (IOException e) {
+            return null;
+        } finally {
+            releaseRead();
+        }
+    }
+
+    public User getUserByEmail(String email) {
+        if (email == null) return null;
+        acquireRead();
+        try {
+            List<User> users = loadUsers();
+            for (User u : users) {
+                if (email.equalsIgnoreCase(u.getEmail())) return u;
+            }
+            return null;
         } catch (IOException e) {
             return null;
         } finally {
