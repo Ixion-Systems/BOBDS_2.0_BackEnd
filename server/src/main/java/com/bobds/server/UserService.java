@@ -465,11 +465,7 @@ public class UserService {
         }
         acquireWrite();
         try {
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Restaura el estado de interrupción
-            }
+            
             List<User> users = loadUsers();
             for (User u : users) {
                 if (u.getEmail().equalsIgnoreCase(email)) {
