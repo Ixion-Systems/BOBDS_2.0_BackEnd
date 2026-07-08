@@ -27,6 +27,8 @@ B.O.B.D.S. Server is the robust backend application powering the Base Operativa 
 * **Operator Authentication:** Secure login and registration systems with token validation and SHA-256 password hashing.
 * **Chronological Order Traceability:** Orders sorted dynamically by timestamps with strict monotonic ID fallbacks.
 * **External Integration:** Resilient Java `HttpClient` to transmit orders directly to external robotic simulators with timeout protections.
+* **Centralized Settings API:** Endpoints for dynamic user profile updates, including username alterations and secure password changes.
+* **Global Preferences Synchronization:** Backend management of UI preferences like GSAP animation toggles, permanently stored per user profile.
 * **Secure Environment:** Sensitive credentials and local databases are strictly ignored and protected via `.gitignore` and `application-secret.properties`.
 
 ## Prerequisites
