@@ -1,19 +1,20 @@
 package com.bobds.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.io.File;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.security.SecureRandom;
 import java.util.concurrent.Semaphore;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 @Service
 /* servicio logico de usuarios */
@@ -464,6 +465,11 @@ public class UserService {
         }
         acquireWrite();
         try {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restaura el estado de interrupción
+            }
             List<User> users = loadUsers();
             for (User u : users) {
                 if (u.getEmail().equalsIgnoreCase(email)) {
