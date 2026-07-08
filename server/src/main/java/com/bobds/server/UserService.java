@@ -457,4 +457,78 @@ public class UserService {
             releaseWrite();
         }
     }
+
+    public String updateUsername(String email, String newUsername) {
+        if (newUsername == null || !newUsername.matches("^[a-zA-Z0-9]{3,30}$")) {
+            return "Error: Invalid username format.";
+        }
+        acquireWrite();
+        try {
+            List<User> users = loadUsers();
+            for (User u : users) {
+                if (u.getEmail().equalsIgnoreCase(email)) {
+                    u.setUsername(newUsername);
+                    saveUsers(users);
+                    try { logService.registerLog(email, 3, "Nombre de usuario actualizado", "Usuario", String.valueOf(u.getUserId())); } catch (Exception ignore) {}
+                    return "OK";
+                }
+            }
+            return "Error: User not found.";
+        } catch (IOException e) {
+            return "Internal error updating username: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
+    }
+
+    public String updatePassword(String email, String currentPassword, String newPassword) {
+        acquireWrite();
+        try {
+            List<User> users = loadUsers();
+            User target = null;
+            for (User u : users) {
+                if (u.getEmail().equalsIgnoreCase(email)) {
+                    target = u;
+                    break;
+                }
+            }
+            if (target == null) return "Error: User not found.";
+
+            if (!checkPassword(currentPassword, target.getPassword())) {
+                return "Error: Current password is incorrect.";
+            }
+
+            if (newPassword == null || !newPassword.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z0-9]{8,12}$")) {
+                return "Error: Password must be 8-12 characters, including upper, lower, and numeric characters.";
+            }
+
+            target.setPassword(hashPassword(newPassword));
+            saveUsers(users);
+            try { logService.registerLog(email, 3, "Contraseña actualizada", "Usuario", String.valueOf(target.getUserId())); } catch (Exception ignore) {}
+            return "OK";
+        } catch (IOException e) {
+            return "Internal error updating password: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
+    }
+
+    public String updateAnimationPreference(String email, boolean enabled) {
+        acquireWrite();
+        try {
+            List<User> users = loadUsers();
+            for (User u : users) {
+                if (u.getEmail().equalsIgnoreCase(email)) {
+                    u.setAnimationsEnabled(enabled);
+                    saveUsers(users);
+                    return "OK";
+                }
+            }
+            return "Error: User not found.";
+        } catch (IOException e) {
+            return "Internal error updating preference: " + e.getMessage();
+        } finally {
+            releaseWrite();
+        }
+    }
 }

@@ -38,6 +38,9 @@ public class User {
 
     private boolean admin = false;
 
+    @JsonProperty("AnimacionesActivadas")
+    private boolean animationsEnabled = true;
+
     /* constructores */
     public User() {
     }
@@ -55,8 +58,8 @@ public class User {
             errors.append("- Username must be 3-30 alphanumeric characters.\n");
         }
 
-        if (pass == null || !pass.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z0-9]{3,12}$")) {
-            errors.append("- Password must be 3-12 characters, including upper, lower, and numeric characters.");
+        if (pass == null || !pass.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z0-9]{8,12}$")) {
+            errors.append("- Password must be 8-12 characters, including upper, lower, and numeric characters.");
         }
 
         if (errors.length() == 0) {
@@ -96,4 +99,7 @@ public class User {
     
     @JsonProperty("isAdmin")
     public void setAdmin(boolean admin) { this.admin = admin; }
+
+    public boolean isAnimationsEnabled() { return animationsEnabled; }
+    public void setAnimationsEnabled(boolean animationsEnabled) { this.animationsEnabled = animationsEnabled; }
 }
