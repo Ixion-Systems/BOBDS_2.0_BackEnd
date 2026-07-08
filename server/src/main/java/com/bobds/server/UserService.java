@@ -494,7 +494,7 @@ public class UserService {
             }
             if (target == null) return "Error: User not found.";
 
-            if (!checkPassword(currentPassword, target.getPassword())) {
+            if (!target.getPassword().equals(hashPassword(currentPassword))) {
                 return "Error: Current password is incorrect.";
             }
 
